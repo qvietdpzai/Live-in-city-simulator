@@ -127,8 +127,8 @@ const UI = {
       if (e.target === this.els.modal) this.closeModal();
     });
     document.getElementById('fullscreenBtn')?.addEventListener('click', () => this.toggleFullscreen());
-    document.getElementById('menuNewGame')?.addEventListener('click', () => alert('Start new game!'));
-    document.getElementById('menuLoadGame')?.addEventListener('click', () => alert('Load game!'));
+    document.getElementById('menuNewGame')?.addEventListener('click', () => UI.startNewGame());
+    document.getElementById('menuLoadGame')?.addEventListener('click', () => UI.loadGame());
   },
 
   /* ---------- confirmation modal ---------- */
@@ -343,10 +343,39 @@ const UI = {
     this.els.tutorial.classList.add('open');
   },
 
-  closeTutorial() {
+closeTutorial() {
     this.els.tutorial.classList.remove('open');
     localStorage.setItem('live-in-city-tutorial-seen', '1');
-  },
+},
+
+showMenu() {
+  if (this.els.menu) this.els.menu.classList.add('open');
+},
+
+hideMenu() {
+  if (this.els.menu) this.els.menu.classList.remove('open');
+},
+
+startNewGame() {
+  this.hideMenu();
+  clearTimeout(this._menuTimeout);
+  Game.resetCity();
+  this.closeTutorial();
+  UI.toast('New city started!');
+  setTimeout(Game.tryLockLandscape, 1000);
+},
+
+loadGame() {
+  const loaded = Game.sim.load();
+  if (loaded) {
+    this.hideMenu();
+    this.toast('City loaded — welcome back!');
+    setTimeout(Game.tryLockLandscape, 100);
+  } else {
+    this.toast('No saved city found!');
+    this.startNewGame();
+  }
+},
 
   toast(msg) {
     const t = this.els.toast;
