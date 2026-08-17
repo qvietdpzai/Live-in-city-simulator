@@ -308,7 +308,7 @@ const SPRITES = {
 
   /* ---------- buildings: commercial ---------- */
 
-  com1: {
+  shop1: {
     size: 16,
     map: [
       '................',
@@ -330,7 +330,7 @@ const SPRITES = {
     ],
   },
 
-  com2: {
+  shop2: {
     size: 16,
     map: [
       '................',
@@ -352,7 +352,7 @@ const SPRITES = {
     ],
   },
 
-  com3: { // office tower, 2x2 tiles
+  shop3: { // office tower, 2x2 tiles
     size: 32,
     map: [
       '................................',

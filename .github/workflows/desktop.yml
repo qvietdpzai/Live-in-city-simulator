@@ -7,7 +7,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: Live-in-City-Windows
+          - os: ubuntu-latest
+            artifact: Live-in-City-Linux
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,15 +28,13 @@ jobs:
       - name: Install npm dependencies
         run: npm install --no-audit --no-fund
 
-      # Windows targets are cross-built with Wine (preinstalled on
-      # ubuntu-latest runners); Linux gets an AppImage.
-      - name: Build desktop apps
-        run: npx electron-builder --publish never --win nsis portable --linux AppImage
+      - name: Build desktop app
+        run: npx electron-builder --publish never
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Live-in-City-Desktop
+          name: ${{ matrix.artifact }}
           path: |
             dist/*.exe
             dist/*.AppImage

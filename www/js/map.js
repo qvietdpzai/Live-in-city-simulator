@@ -28,9 +28,9 @@ const BUILDING_STATS = {
     3: { pop: 42, jobs: 2, sprite: 'res3', name: 'Apartment', tiles: 2 },
   },
   com: {
-    1: { pop: 0, jobs: 4, sprite: 'com1', name: 'Shop' },
-    2: { pop: 0, jobs: 10, sprite: 'com2', name: 'Store' },
-    3: { pop: 0, jobs: 24, sprite: 'com3', name: 'Office Tower', tiles: 2 },
+    1: { pop: 0, jobs: 4, sprite: 'shop1', name: 'Shop' },
+    2: { pop: 0, jobs: 10, sprite: 'shop2', name: 'Store' },
+    3: { pop: 0, jobs: 24, sprite: 'shop3', name: 'Office Tower', tiles: 2 },
   },
   ind: {
     1: { pop: 0, jobs: 8, sprite: 'ind1', name: 'Workshop' },

@@ -9,7 +9,7 @@ const UI = {
   TOOLS: [
     { id: 'road', key: '1', label: 'Road', icon: 'road' },
     { id: 'res', key: '2', label: 'House', icon: 'res1' },
-    { id: 'com', key: '3', label: 'Shop', icon: 'com1' },
+    { id: 'com', key: '3', label: 'Shop', icon: 'shop1' },
     { id: 'ind', key: '4', label: 'Factory', icon: 'ind1' },
     { id: 'park', key: '5', label: 'Park', icon: 'park' },
     { id: 'power', key: '6', label: 'Power', icon: 'powerPlant' },
