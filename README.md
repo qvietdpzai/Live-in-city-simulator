@@ -1,30 +1,39 @@
 # 🏙️ Live in City — Pixel City Life Simulator
 
-A pixel-art **city life simulator** that runs in any browser — on your **computer** and your **phone**. Build roads, zone homes/shops/factories, and watch little citizens commute to work in the morning, shop at noon and go home at night. 🌙
+A pixel-art **city life simulator** that runs everywhere: **Android APK** 📱, **Windows / Linux desktop app** 💻 and **any web browser**. Build roads, zone homes/shops/factories, and watch little citizens commute to work in the morning, shop at noon and go home at night. 🌙
 
-Inspired by the design reference in [`asset/1786937955542.png`](asset/1786937955542.png).
+Inspired by the design reference in [`www/asset/1786937955542.png`](www/asset/1786937955542.png).
 
-## ▶️ Play
+## 📦 Get the apps (built automatically by GitHub Actions)
 
-**Option A — GitHub Pages (recommended):** after pushing this repo, enable Pages in *Settings → Pages → Source: GitHub Actions* (the included workflow deploys automatically). Then open the URL it shows, on any device.
+Every push runs the build pipelines — open the **Actions** tab of this repo and pick the latest run:
 
-**Option B — locally:**
+| App | Where to find it | What you download |
+|---|---|---|
+| 📱 **Android APK** | workflow **"Build Android APK"** → artifact `live-in-city-apk` | `app-debug.apk` — install directly on your phone (enable "install unknown apps") |
+| 🪟 **Windows app** | workflow **"Build Desktop Apps (Windows + Linux)"** → artifact `Live-in-City-Windows` | `Live-in-City-...-win-x64.exe` installer or `-portable.exe` — no install needed |
+| 🐧 **Linux app** | same workflow → artifact `Live-in-City-Linux` | `Live-in-City-...-linux-x86_64.AppImage` — `chmod +x` then run |
+
+> 💡 You can also trigger a build any time: **Actions → workflow → "Run workflow"** (branch `main`).
+
+## ▶️ Play online (web)
+
+The same game runs in any browser. Enable **Settings → Pages → Source: GitHub Actions** once and the included workflow deploys `www/` automatically — then open the Pages URL on any device.
+
+Or run locally:
 ```bash
-# from this folder
-python3 -m http.server 8000
-# open http://localhost:8000 in your browser
+python3 -m http.server 8000 --directory www
+# open http://localhost:8000
 ```
-Or just double-click `index.html`.
-
-**Option C — install on your phone:** open the Pages URL on your phone and choose *"Add to Home Screen"* (PWA, works offline).
 
 ## 🎮 How to play
 
 1. Draw **roads** first — buildings only grow next to roads.
 2. Zone **🏠 homes**, **🏪 shops** and **🏭 factories** on the grass.
-3. Watch the **demand bars** (top right): more jobs than people → zone homes; more people than jobs → zone industry.
-4. Collect **taxes** 💰 every in-game day and level buildings up to **Lv.3**.
-5. Enjoy the life: citizens commute at 7am, shop at noon, go home at night; cars drive the streets; rain and day/night cycle included.
+3. Power your city: build a **⚡ power plant**, or nothing will grow.
+4. Add **🚓 police** and **🎓 school** to speed up development around them.
+5. Watch the **demand bars** (top right): more jobs than people → zone homes; more people than jobs → zone industry.
+6. Collect **taxes** 💰 every in-game day and level buildings up to **Lv.3**.
 
 ### Controls
 
@@ -40,39 +49,57 @@ Or just double-click `index.html`.
 ## 🗂 Project layout
 
 ```
-index.html          game page
-css/style.css       UI styles
-js/sprites.js       pixel-art data (single source of truth for the art)
-js/map.js           world grid + terrain generation
-js/sim.js           economy, growth, citizens, cars, day/night, save/load
-js/render.js        canvas renderer + camera
-js/input.js         mouse/touch/keyboard controls
-js/ui.js            HUD, toolbar, tutorial
-js/main.js          bootstrap + game loop
-asset/map/*.png     generated tile & building sprites
-asset/player/*.png  generated player sprites
-asset/1786937955542.png  original design reference
-scripts/gen_assets.py   regenerates asset PNGs from js/sprites.js
-scripts/core_test.js    headless logic tests
+www/                  the game itself (web app — used by every build)
+  index.html
+  js/                 game code (sprites, map, sim, render, input, ui, main)
+  css/                styles
+  asset/map,player/   generated pixel-art sprites (png)
+main.js               Electron main process (desktop app)
+electron-builder.yml  Windows/Linux desktop packaging
+capacitor.config.json Android (Capacitor) config
+package.json          build tooling (Capacitor + Electron)
+scripts/gen_assets.py regenerate sprite PNGs from js/sprites.js
+scripts/core_test.js  headless logic tests
+.github/workflows/
+  pages.yml           deploy www/ to GitHub Pages
+  android.yml         build the APK on GitHub Actions
+  desktop.yml         build Windows + Linux apps on GitHub Actions
 ```
 
-## 🛠 Development
+## 🛠 Build it yourself
+
+You only need this if you want to build on your own machine (the CI does it for you):
 
 ```bash
-# regenerate pixel-art PNGs from sprites.js
-python3 scripts/gen_assets.py
+npm install
 
-# run the headless logic tests
-node scripts/core_test.js
+# Android APK
+npx cap add android
+npx cap sync android
+cd android && ./gradlew assembleDebug   # APK in android/app/build/outputs/apk/debug/
+cd ..
+
+# Desktop apps (Windows: run on Windows; Linux: run on Linux)
+npx electron-builder --publish never     # output in dist/
 ```
 
-Your city is autosaved in the browser (localStorage) — the 💾 button saves manually, 🔄 starts a new city.
+Other useful commands:
+
+```bash
+python3 scripts/gen_assets.py   # regenerate pixel-art PNGs from sprites.js
+npm test                        # run the headless logic tests
+```
+
+Your city autosaves in the browser/app (localStorage) — 💾 saves manually, 🔄 starts a new city.
 
 ---
 
 ## 🇻🇳 Giới thiệu tiếng Việt
 
-**Live in City** là game mô phỏng cuộc sống thành phố theo phong cách pixel art, chạy trên trình duyệt cả điện thoại lẫn máy tính. Bạn vẽ đường, quy hoạch khu nhà ở / cửa hàng / nhà máy, thu thuế và xem dân cư đi làm buổi sáng, đi mua sắm buổi trưa và về nhà buổi tối.
+**Live in City** là game mô phỏng cuộc sống thành phố theo phong cách pixel art. Có 3 bản:
 
-- **Máy tính:** kéo chuột để xây, lăn để zoom, phím `1`–`6` chọn công cụ, `Space` tạm dừng.
-- **Điện thoại:** chạm để xây, kéo để di chuyển bản đồ, chạm 2 ngón để zoom, giữ lâu để phá dỡ.
+- **📱 APK Android** — tải file `app-debug.apk` ở tab **Actions → "Build Android APK"** → mục `live-in-city-apk`, cài trực tiếp vào điện thoại.
+- **💻 App máy tính** — tải ở **Actions → "Build Desktop Apps"**: bản Windows là file `.exe` (hoặc `-portable.exe` không cần cài), bản Linux là file `.AppImage`.
+- **🌐 Bản web** — chơi trên trình duyệt, bật GitHub Pages trong Settings là có link.
+
+**Cách chơi:** vẽ đường → quy hoạch nhà ở / cửa hàng / nhà máy → xây **nhà máy điện** ⚡ (thiếu điện công trình không mọc) → thêm **đồn cảnh sát** 🚓 và **trường học** 🎓 để khu vực phát triển nhanh → thu thuế và nâng cấp công trình lên cấp 3.

@@ -1,0 +1,36 @@
+appId: com.liveincity.simulator
+productName: Live in City
+copyright: Copyright © 2024 qvietdpzai
+
+directories:
+  buildResources: build
+  output: dist
+
+files:
+  - main.js
+  - www/**/*
+  - build/icon.png
+  - package.json
+
+asar: true
+
+# build/icon.png (512x512) is used automatically for all platforms;
+# electron-builder generates the .ico/.icns from it.
+
+win:
+  target:
+    - nsis
+    - portable
+  artifactName: Live-in-City-${version}-win-${arch}.${ext}
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+linux:
+  target:
+    - AppImage
+  category: Game
+  artifactName: Live-in-City-${version}-linux-${arch}.${ext}

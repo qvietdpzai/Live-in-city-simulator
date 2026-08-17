@@ -1,0 +1,23 @@
+{
+  "name": "live-in-city",
+  "version": "1.0.0",
+  "description": "Live in City — pixel-art city life simulator (Android APK + Windows/Linux desktop app + web)",
+  "author": "qvietdpzai",
+  "license": "MIT",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "sync": "cap sync android",
+    "test": "node scripts/core_test.js",
+    "assets": "python3 scripts/gen_assets.py",
+    "desktop": "electron .",
+    "build:desktop": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  }
+}

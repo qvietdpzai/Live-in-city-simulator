@@ -58,7 +58,7 @@ global.navigator = {};
 
 /* ---------- load game scripts + test body in one shared scope ---------- */
 
-const root = path.join(__dirname, '..');
+const root = path.join(__dirname, '..', 'www');
 const files = ['sprites.js', 'map.js', 'sim.js', 'render.js', 'audio.js', 'input.js', 'ui.js', 'main.js'];
 const code = files.map(f => fs.readFileSync(path.join(root, 'js', f), 'utf8')).join('\n;\n');
 

@@ -21,7 +21,7 @@ import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SPRITES_JS = ROOT / "js" / "sprites.js"
+SPRITES_JS = ROOT / "www" / "js" / "sprites.js"
 
 
 def parse_sprites(text):
@@ -108,8 +108,8 @@ def main():
     palette, sprites = parse_sprites(text)
     print(f"Parsed {len(sprites)} sprites, {len(palette)} colors")
 
-    map_dir = ROOT / "asset" / "map"
-    player_dir = ROOT / "asset" / "player"
+    map_dir = ROOT / "www" / "asset" / "map"
+    player_dir = ROOT / "www" / "asset" / "player"
     map_dir.mkdir(parents=True, exist_ok=True)
     player_dir.mkdir(parents=True, exist_ok=True)
 
@@ -123,7 +123,7 @@ def main():
 
     # app icons from the player sprite (down, frame 1)
     base = sprite_pixels(palette, sprites["playerDown1"], True)
-    icon_dir = ROOT / "asset"
+    icon_dir = ROOT / "www" / "asset"
     for size in (192, 512):
         factor = size // 16
         write_png(icon_dir / f"icon-{size}.png", scale_pixels(base, factor), size, size)

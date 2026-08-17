@@ -474,6 +474,74 @@ const SPRITES = {
     ],
   },
 
+  /* ---------- city services ---------- */
+
+  powerPlant: {
+    size: 16,
+    map: [
+      '.....ww...........',
+      '....ww............',
+      '.....w............',
+      '......KK..........',
+      '.....KKK..........',
+      '.....KAK..........',
+      '.....KKK..........',
+      '......KK..........',
+      '....GGGGGGGG......',
+      '...GgggggggG......',
+      '...GgYYYYggG......',
+      '...GgYggYggG......',
+      '...GggYYYYggG.....',
+      '...GgggggggG......',
+      '...KKKKKKKKKK.....',
+      '................',
+    ],
+  },
+
+  police: {
+    size: 16,
+    map: [
+      '................',
+      '......RRRR......',
+      '.....RrrrrR.....',
+      '.....RrWWrR.....',
+      '.....RrrrrR.....',
+      '....UUUUUUUU....',
+      '....UwUwUwUU....',
+      '....UUUUUUUU....',
+      '....UUUUUUUU....',
+      '....UUUUUUUU....',
+      '....UUUUUUUU....',
+      '....UUUUQQUU....',
+      '....UUUUQQUU....',
+      '....KKKKKKKK....',
+      '................',
+      '................',
+    ],
+  },
+
+  school: {
+    size: 16,
+    map: [
+      '.......VV.......',
+      '......VvvV......',
+      '......VvvV......',
+      '......VWWV......',
+      '......VvvV......',
+      '.....RRRRRR.....',
+      '....RrrrrrrR....',
+      '....RrrrrrrR....',
+      '....NNNNNNNN....',
+      '....NNWWNNWW....',
+      '....NNWWNNWW....',
+      '....NNNNNNNN....',
+      '....NNNOONNN....',
+      '....NNNOONNN....',
+      '....KKKKKKKK....',
+      '................',
+    ],
+  },
+
   /* ---------- player ----------
    * 4 directions x 2 walk frames. Faces are drawn from the
    * front (down), back (up) and sides (left/right).

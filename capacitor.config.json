@@ -1,0 +1,9 @@
+{
+  "appId": "com.liveincity.simulator",
+  "appName": "Live in City",
+  "webDir": "www",
+  "backgroundColor": "#1b2233",
+  "android": {
+    "allowMixedContent": false
+  }
+}
