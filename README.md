@@ -6,15 +6,15 @@ Inspired by the design reference in [`www/asset/1786937955542.png`](www/asset/17
 
 ## 📦 Get the apps (built automatically by GitHub Actions)
 
-Every push runs the build pipelines — open the **Actions** tab of this repo and pick the latest run:
+Every push runs the **"Build & Release"** pipeline, which builds the apps and publishes them to the **Releases** tab of this repo. Open **Releases → "Live in City — latest build"** and download:
 
-| App | Where to find it | What you download |
-|---|---|---|
-| 📱 **Android APK** | workflow **"Build Android APK"** → artifact `live-in-city-apk` | `app-debug.apk` — install directly on your phone (enable "install unknown apps") |
-| 🪟 **Windows app** | workflow **"Build Desktop Apps (Windows + Linux)"** → artifact `Live-in-City-Desktop` | `Live-in-City-...-win-x64.exe` installer or `-portable.exe` — no install needed |
-| 🐧 **Linux app** | same workflow → artifact `Live-in-City-Desktop` | `Live-in-City-...-linux-x86_64.AppImage` — `chmod +x` then run |
+| App | What you download |
+|---|---|
+| 📱 **Android APK** | `app-debug.apk` — install directly on your phone (enable "install unknown apps") |
+| 🪟 **Windows app** | `Live-in-City-...-win-x64.exe` installer or `-portable.exe` — no install needed |
+| 🐧 **Linux app** | `Live-in-City-...-linux-x86_64.AppImage` — `chmod +x` then run |
 
-> 💡 You can also trigger a build any time: **Actions → workflow → "Run workflow"** (branch `main`).
+> 💡 Trigger a fresh build any time: **Actions → "Build & Release" → "Run workflow"** (branch `main`). The apps are then published to the same release.
 
 ## ▶️ Play in a browser (web)
 
@@ -59,8 +59,7 @@ package.json          build tooling (Capacitor + Electron)
 scripts/gen_assets.py regenerate sprite PNGs from js/sprites.js
 scripts/core_test.js  headless logic tests
 .github/workflows/
-  android.yml         build the APK on GitHub Actions
-  desktop.yml         build Windows + Linux apps on GitHub Actions
+  release.yml        build APK + desktop apps and publish them to a GitHub Release
 ```
 
 ## 🛠 Build it yourself
@@ -95,8 +94,8 @@ Your city autosaves in the browser/app (localStorage) — 💾 saves manually, �
 
 **Live in City** là game mô phỏng cuộc sống thành phố theo phong cách pixel art. Có 3 bản:
 
-- **📱 APK Android** — tải file `app-debug.apk` ở tab **Actions → "Build Android APK"** → mục `live-in-city-apk`, cài trực tiếp vào điện thoại.
-- **💻 App máy tính** — tải ở **Actions → "Build Desktop Apps"**: bản Windows là file `.exe` (hoặc `-portable.exe` không cần cài), bản Linux là file `.AppImage`.
+- **📱 APK Android** — tải file `app-debug.apk` ở tab **Releases → "Live in City — latest build"**, cài trực tiếp vào điện thoại.
+- **💻 App máy tính** — tải ở tab **Releases**: bản Windows là file `.exe` (hoặc `-portable.exe` không cần cài), bản Linux là file `.AppImage`.
 - **🌐 Bản web** — chơi thử trên trình duyệt: `python3 -m http.server 8000 --directory www` rồi mở `http://localhost:8000`.
 
 **Cách chơi:** vẽ đường → quy hoạch nhà ở / cửa hàng / nhà máy → xây **nhà máy điện** ⚡ (thiếu điện công trình không mọc) → thêm **đồn cảnh sát** 🚓 và **trường học** 🎓 để khu vực phát triển nhanh → thu thuế và nâng cấp công trình lên cấp 3.
