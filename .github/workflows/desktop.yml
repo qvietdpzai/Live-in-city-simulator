@@ -7,25 +7,8 @@ on:
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            artifact: Live-in-City-Windows
-          - os: ubuntu-latest
-            artifact: Live-in-City-Linux
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
-      # Windows runners can hit "dubious ownership" during checkout;
-      # allow the workspace path before cloning.
-      - name: Allow git workspace (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          git config --global --add safe.directory "$env:GITHUB_WORKSPACE"
-          git config --global --add safe.directory "*"
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -37,13 +20,15 @@ jobs:
       - name: Install npm dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Build desktop app
-        run: npx electron-builder --publish never
+      # Windows targets are cross-built with Wine (preinstalled on
+      # ubuntu-latest runners); Linux gets an AppImage.
+      - name: Build desktop apps
+        run: npx electron-builder --publish never --win nsis portable --linux AppImage
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
+          name: Live-in-City-Desktop
           path: |
             dist/*.exe
             dist/*.AppImage

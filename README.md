@@ -11,8 +11,8 @@ Every push runs the build pipelines — open the **Actions** tab of this repo an
 | App | Where to find it | What you download |
 |---|---|---|
 | 📱 **Android APK** | workflow **"Build Android APK"** → artifact `live-in-city-apk` | `app-debug.apk` — install directly on your phone (enable "install unknown apps") |
-| 🪟 **Windows app** | workflow **"Build Desktop Apps (Windows + Linux)"** → artifact `Live-in-City-Windows` | `Live-in-City-...-win-x64.exe` installer or `-portable.exe` — no install needed |
-| 🐧 **Linux app** | same workflow → artifact `Live-in-City-Linux` | `Live-in-City-...-linux-x86_64.AppImage` — `chmod +x` then run |
+| 🪟 **Windows app** | workflow **"Build Desktop Apps (Windows + Linux)"** → artifact `Live-in-City-Desktop` | `Live-in-City-...-win-x64.exe` installer or `-portable.exe` — no install needed |
+| 🐧 **Linux app** | same workflow → artifact `Live-in-City-Desktop` | `Live-in-City-...-linux-x86_64.AppImage` — `chmod +x` then run |
 
 > 💡 You can also trigger a build any time: **Actions → workflow → "Run workflow"** (branch `main`).
 
