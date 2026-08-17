@@ -126,6 +126,9 @@ const UI = {
     this.els.modal?.addEventListener('click', (e) => {
       if (e.target === this.els.modal) this.closeModal();
     });
+    document.getElementById('fullscreenBtn')?.addEventListener('click', () => this.toggleFullscreen());
+    document.getElementById('menuNewGame')?.addEventListener('click', () => alert('Start new game!'));
+    document.getElementById('menuLoadGame')?.addEventListener('click', () => alert('Load game!'));
   },
 
   /* ---------- confirmation modal ---------- */
@@ -351,6 +354,15 @@ const UI = {
     t.classList.add('show');
     clearTimeout(this._toastTimer);
     this._toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  },
+
+  toggleFullscreen() {
+    const doc = document.documentElement;
+    if (!doc.fullscreenElement) {
+      doc.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
   },
 
   updateToolbarHint(cost, valid) {
