@@ -17,8 +17,19 @@ jobs:
             artifact: Live-in-City-Linux
     runs-on: ${{ matrix.os }}
     steps:
+      # Windows runners can hit "dubious ownership" during checkout;
+      # allow the workspace path before cloning.
+      - name: Allow git workspace (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          git config --global --add safe.directory "$env:GITHUB_WORKSPACE"
+          git config --global --add safe.directory "*"
+
       - name: Checkout
         uses: actions/checkout@v4
+        retry-on: error
+        retry-on-max-attempts: 3
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -27,9 +38,13 @@ jobs:
 
       - name: Install npm dependencies
         run: npm install --no-audit --no-fund
+        retry-on: error
+        retry-on-max-attempts: 3
 
       - name: Build desktop app
         run: npx electron-builder --publish never
+        retry-on: error
+        retry-on-max-attempts: 2
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
