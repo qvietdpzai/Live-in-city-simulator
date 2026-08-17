@@ -51,6 +51,7 @@ const UI = {
     if (localStorage.getItem('live-in-city-tutorial-seen') !== '1') {
       this.showTutorial();
     }
+    this.showMenu();
   },
 
   buildToolbar() {
@@ -357,23 +358,33 @@ hideMenu() {
 },
 
 startNewGame() {
-  this.hideMenu();
-  clearTimeout(this._menuTimeout);
-  Game.resetCity();
-  this.closeTutorial();
-  UI.toast('New city started!');
-  setTimeout(Game.tryLockLandscape, 1000);
+  try {
+    this.hideMenu();
+    clearTimeout(this._menuTimeout);
+    Game.resetCity();
+    this.closeTutorial();
+    UI.toast('New city started!');
+    setTimeout(Game.tryLockLandscape, 1000);
+  } catch (e) {
+    console.error('Start new game error:', e);
+    UI.toast('Error starting game: ' + e.message);
+  }
 },
 
 loadGame() {
-  const loaded = Game.sim.load();
-  if (loaded) {
-    this.hideMenu();
-    this.toast('City loaded — welcome back!');
-    setTimeout(Game.tryLockLandscape, 100);
-  } else {
-    this.toast('No saved city found!');
-    this.startNewGame();
+  try {
+    const loaded = Game.sim.load();
+    if (loaded) {
+      this.hideMenu();
+      this.toast('City loaded — welcome back!');
+      setTimeout(Game.tryLockLandscape, 100);
+    } else {
+      this.toast('No saved city found!');
+      this.startNewGame();
+    }
+  } catch (e) {
+    console.error('Load game error:', e);
+    UI.toast('Error loading game: ' + e.message);
   }
 },
 
