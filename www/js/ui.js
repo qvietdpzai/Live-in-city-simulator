@@ -12,11 +12,15 @@ const UI = {
     { id: 'com', key: '3', label: 'Shop', icon: 'com1' },
     { id: 'ind', key: '4', label: 'Factory', icon: 'ind1' },
     { id: 'park', key: '5', label: 'Park', icon: 'park' },
-    { id: 'demolish', key: '6', label: 'Demolish', icon: 'demolish' },
+    { id: 'power', key: '6', label: 'Power', icon: 'powerPlant' },
+    { id: 'police', key: '7', label: 'Police', icon: 'police' },
+    { id: 'school', key: '8', label: 'School', icon: 'school' },
+    { id: 'demolish', key: '9', label: 'Demolish', icon: 'demolish' },
   ],
 
   init() {
     this.els.money = document.getElementById('money');
+    this.els.power = document.getElementById('power');
     this.els.pop = document.getElementById('pop');
     this.els.jobs = document.getElementById('jobs');
     this.els.date = document.getElementById('date');
@@ -106,6 +110,10 @@ const UI = {
   update() {
     const sim = Game.sim;
     this.els.money.textContent = fmtMoney(sim.money);
+    this.els.power.textContent = sim.powerCapacity > 0
+      ? `${sim.powerDemand}/${sim.powerCapacity}`
+      : 'off';
+    this.els.power.parentElement.classList.toggle('warn', sim.powerCapacity > 0 && sim.powerDemand > sim.powerCapacity);
     this.els.pop.textContent = sim.population.toLocaleString();
     this.els.jobs.textContent = `${sim.workers}/${sim.jobsAvailable}`;
     this.els.date.textContent = `${sim.day} ${MONTHS[sim.month - 1]} ${sim.year}`;
@@ -161,8 +169,17 @@ const UI = {
     if (bldId !== -1) {
       const b = m.buildings.get(bldId);
       html = `<b>${b.name}</b> <span class="lvl">Lv.${b.level}</span>`;
-      if (b.type === 'res') html += `<br>👥 ${b.pop} residents`;
-      else html += `<br>💼 ${b.workers}/${b.jobs} workers`;
+      if (b.svc) {
+        const r = SERVICE_STATS[b.svc].radius;
+        html += `<br>💼 ${b.workers}/${b.jobs} workers`;
+        if (r) html += `<br><span class="hint">covers ${r} tiles around</span>`;
+      } else if (b.type === 'res') {
+        html += `<br>👥 ${b.pop} residents`;
+        html += b.powered === false ? `<br><span class="no-power">⚡ no power</span>` : `<br><span class="hint">⚡ powered</span>`;
+      } else {
+        html += `<br>💼 ${b.workers}/${b.jobs} workers`;
+        html += b.powered === false ? `<br><span class="no-power">⚡ no power</span>` : `<br><span class="hint">⚡ powered</span>`;
+      }
     } else {
       const t = m.get(tile.x, tile.y);
       if (ZONE_INFO[t]) {

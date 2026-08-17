@@ -197,7 +197,7 @@ const Input = {
     if (e.code === 'ArrowDown' || e.code === 'KeyS') Render.camY += speed * Render.zoom;
     Render.clampCamera();
     if (e.code === 'Space') { e.preventDefault(); UI.togglePause(); }
-    const toolKeys = { Digit1: 'road', Digit2: 'res', Digit3: 'com', Digit4: 'ind', Digit5: 'park', Digit6: 'demolish' };
+    const toolKeys = { Digit1: 'road', Digit2: 'res', Digit3: 'com', Digit4: 'ind', Digit5: 'park', Digit6: 'power', Digit7: 'police', Digit8: 'school', Digit9: 'demolish' };
     if (toolKeys[e.code]) { UI.selectTool(toolKeys[e.code]); AudioFX.click(); }
     if (e.code === 'Equal' || e.code === 'NumpadAdd') { Render.zoom = Math.min(4, Render.zoom + 1); Render.clampCamera(); UI.updateZoomLabel(); }
     if (e.code === 'Minus' || e.code === 'NumpadSubtract') { Render.zoom = Math.max(1, Render.zoom - 1); Render.clampCamera(); UI.updateZoomLabel(); }

@@ -15,6 +15,7 @@
     <header id="hud">
       <div class="hud-left">
         <div class="stat" id="money" title="City budget">$3,000</div>
+        <div class="stat" title="Power used / capacity"><span class="stat-emoji">⚡</span><span id="power">off</span></div>
         <div class="stat" title="Population"><span class="stat-emoji">👥</span><span id="pop">0</span></div>
         <div class="stat" title="Workers / Jobs"><span class="stat-emoji">💼</span><span id="jobs">0/0</span></div>
         <div class="stat" title="Date"><span id="date">1 Jan 2024</span></div>
@@ -67,12 +68,13 @@
       <p class="sub">A pixel city-life simulator. Grow a quiet village into a busy town — roads, homes, shops and factories, with citizens who live, work and stroll your streets.</p>
       <div class="steps">
         <div class="step"><span class="step-num">1</span> <span>Draw <b>roads</b> first — buildings need them to grow.</span></div>
-        <div class="step"><span class="step-num">2</span> <span>Zone <b>homes</b> 🏠 near jobs, <b>shops</b> 🏪 near people, <b>factories</b> 🏭 near workers.</span></div>
-        <div class="step"><span class="step-num">3</span> <span>Watch demand bars, collect taxes 💰 and level buildings up to Lv.3.</span></div>
-        <div class="step"><span class="step-num">4</span> <span>Watch your citizens commute at 7am, shop at noon and go home at night 🌙.</span></div>
+        <div class="step"><span class="step-num">2</span> <span>Build a <b>⚡ power plant</b> — nothing grows without electricity!</span></div>
+        <div class="step"><span class="step-num">3</span> <span>Zone <b>homes</b> 🏠 near jobs, <b>shops</b> 🏪 near people, <b>factories</b> 🏭 near workers.</span></div>
+        <div class="step"><span class="step-num">4</span> <span>Add <b>🚓 police</b> &amp; <b>🎓 school</b> to speed up development. Collect taxes 💰 and level buildings to Lv.3.</span></div>
+        <div class="step"><span class="step-num">5</span> <span>Watch your citizens commute at 7am, shop at noon and go home at night 🌙.</span></div>
       </div>
       <div class="controls">
-        <div><b>🖱 Computer:</b> drag to build · wheel to zoom · WASD/arrows to pan · <kbd>1</kbd>–<kbd>6</kbd> tools · <kbd>Space</kbd> pause</div>
+        <div><b>🖱 Computer:</b> drag to build · wheel to zoom · WASD/arrows to pan · <kbd>1</kbd>–<kbd>9</kbd> tools · <kbd>Space</kbd> pause</div>
         <div><b>📱 Phone:</b> tap to build · drag to pan · pinch to zoom · long-press to demolish</div>
       </div>
       <button id="startBtn">Start building 🚧</button>

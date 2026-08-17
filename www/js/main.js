@@ -83,6 +83,19 @@ const Game = {
     m.placeBuilding(cx - 1, roadY + 1, 'ind', 1);
     m.placeBuilding(cx + 5, roadY - 1, 'res', 1);
     m.placeBuilding(cx + 5, roadY + 1, 'res', 1);
+    // services: power (required!) + police + school, beside the roads
+    this.placeSeedService(cx - 4, roadY, 'power');
+    this.placeSeedService(cx + 4, roadY, 'police');
+    this.placeSeedService(cx - 4, roadY, 'school');
+  },
+
+  placeSeedService(x, y, svc) {
+    const m = this.map;
+    const spots = [[x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]];
+    for (const [sx, sy] of spots) {
+      if (m.placeService(sx, sy, svc)) return true;
+    }
+    return false;
   },
 
   /* ---------- tools ---------- */
@@ -97,6 +110,9 @@ const Game = {
     }
     if (this.tool === 'road') {
       return t === TILES.GRASS || t === TILES.SAND || t === TILES.TREE || t === TILES.PARK;
+    }
+    if (this.tool === 'power' || this.tool === 'police' || this.tool === 'school') {
+      return this.map.isBuildable(x, y) && !!this.map.roadAdjacent(x, y);
     }
     return this.map.isBuildable(x, y);
   },
@@ -122,6 +138,23 @@ const Game = {
         const t = this.map.get(x, y);
         if (t === TILES.ROAD) this.sim.money += COSTS[TILES.ROAD] * COSTS.demolishRefund;
         this.sim.trimCitizens();
+      }
+      return;
+    }
+
+    if (this.tool === 'power' || this.tool === 'police' || this.tool === 'school') {
+      const info = SERVICE_STATS[this.tool];
+      if (!this.sim.canAfford(info.cost)) {
+        AudioFX.error();
+        UI.toast('Not enough money!');
+        return;
+      }
+      if (this.map.placeService(x, y, this.tool)) {
+        this.sim.spend(info.cost);
+        this.sim.computePower();
+        AudioFX.build();
+      } else {
+        AudioFX.error();
       }
       return;
     }

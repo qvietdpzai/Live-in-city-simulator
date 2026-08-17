@@ -202,6 +202,7 @@ const Render = {
           const b = m.buildings.get(bldId);
           if (b && b.x === x && b.y === y) {
             this.drawBuilding(b, sx, sy, tpx);
+            if (!b.svc && b.powered === false) this.drawNoPower(sx, sy, tpx, b.size || 1);
           }
         }
       }
@@ -315,6 +316,19 @@ const Render = {
     const w = s.size * px, h = s.size * px;
     const canvas = Game.sim.daylight() < 0.45 ? this.spriteCache[name].night : this.spriteCache[name].day;
     this.ctx.drawImage(canvas, sx, sy, w, h);
+  },
+
+  /* dark overlay + lightning marker for buildings without power */
+  drawNoPower(sx, sy, tpx, tiles) {
+    const ctx = this.ctx;
+    const px = tpx / TILE;
+    ctx.fillStyle = 'rgba(18, 10, 32, 0.5)';
+    ctx.fillRect(sx, sy, tpx * tiles, tpx * tiles);
+    // small yellow lightning bolt (approx 6x7 px cells)
+    const bx = sx + px * 1, by = sy + px * 1;
+    ctx.fillStyle = '#ffd75e';
+    const cells = [[1, 0], [2, 0], [1, 1], [0, 2], [1, 2], [1, 3], [2, 3], [2, 4], [3, 4], [3, 5]];
+    for (const [cx, cy] of cells) ctx.fillRect(bx + cx * px, by + cy * px, px, px);
   },
 
   drawCar(ctx, car, ox, oy, tpx) {

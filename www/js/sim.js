@@ -18,6 +18,9 @@ const Sim = {
   jobsAvailable: 0,
   unemployment: 0,
   demand: { res: 0.3, com: 0.2, ind: 0.2 },
+  powerCapacity: 0,
+  powerDemand: 0,
+  sparePower: 0,
   weather: 'clear',          // 'clear' | 'rain'
   weatherTimer: 0,
   citizens: [],
@@ -36,6 +39,53 @@ const Sim = {
     this.cars = [];
     this.popHistory = [];
     this.nextCitizenId = 1;
+    this.computePower();
+  },
+
+  /* ---------------- power & services ---------------- */
+
+  powerNeed(b) {
+    const t = b.type, l = b.level - 1;
+    if (t === 'res') return [2, 4, 6][l];
+    if (t === 'com') return [3, 5, 8][l];
+    if (t === 'ind') return [4, 7, 10][l];
+    return 0;
+  },
+
+  computePower() {
+    const map = this.map;
+    let capacity = 0;
+    for (const b of map.buildings.values()) {
+      if (b.svc === 'power') capacity += 150;
+    }
+    this.powerCapacity = capacity;
+    const consumers = [];
+    let demand = 0;
+    for (const b of map.buildings.values()) {
+      if (b.svc) continue;
+      b.powerNeed = this.powerNeed(b);
+      demand += b.powerNeed;
+      consumers.push(b);
+    }
+    this.powerDemand = demand;
+    // allocate power in build order
+    let remaining = capacity;
+    for (const b of consumers) {
+      if (remaining >= b.powerNeed) { b.powered = true; remaining -= b.powerNeed; }
+      else b.powered = false;
+    }
+    this.sparePower = remaining;
+  },
+
+  serviceCoverage(svc, x, y) {
+    const r = SERVICE_STATS[svc].radius;
+    for (const b of this.map.buildings.values()) {
+      if (b.svc === svc) {
+        const d = Math.abs(b.x - x) + Math.abs(b.y - y);
+        if (d <= r) return true;
+      }
+    }
+    return false;
   },
 
   /* ---------------- time ---------------- */
@@ -79,6 +129,7 @@ const Sim = {
       this.month++;
       if (this.month > 12) { this.month = 1; this.year++; }
     }
+    this.computePower();
     this.computeDemand();
     this.growBuildings();
     this.collectTaxes();
@@ -93,10 +144,15 @@ const Sim = {
   collectTaxes() {
     let income = 0, upkeep = 0;
     for (const b of this.map.buildings.values()) {
-      const t = b.type === 'res' ? b.pop * 0.35 : b.type === 'com' ? b.jobs * 0.7 : b.jobs * 0.5;
+      let t;
+      if (b.type === 'res') t = b.pop * 0.35;
+      else if (b.svc) t = b.jobs * 0.6;
+      else if (b.type === 'com') t = b.jobs * 0.7;
+      else t = b.jobs * 0.5;
       income += t * this.taxRate;
+      if (b.svc) upkeep += SERVICE_STATS[b.svc].upkeep;
     }
-    upkeep = this.map.countTile(TILES.ROAD) * 0.03 + this.map.countTile(TILES.PARK) * 0.05;
+    upkeep += this.map.countTile(TILES.ROAD) * 0.03 + this.map.countTile(TILES.PARK) * 0.05;
     this.money += income - upkeep;
     this.incomeTotal = income;
     this.upkeepTotal = upkeep;
@@ -112,7 +168,7 @@ const Sim = {
     let pop = 0, jobs = 0;
     for (const b of this.map.buildings.values()) {
       pop += b.type === 'res' ? b.pop : 0;
-      jobs += (b.type === 'com' || b.type === 'ind') ? b.jobs : 0;
+      jobs += (b.type === 'com' || b.type === 'ind' || b.svc) ? b.jobs : 0;
     }
     this.population = pop;
     this.jobsAvailable = jobs;
@@ -157,10 +213,15 @@ const Sim = {
     const bld = map.buildingAt[map.idx(x, y)];
     const demand = this.demand[type];
     const road = map.roadAdjacent(x, y);
+    const police = this.serviceCoverage('police', x, y);
+    const school = this.serviceCoverage('school', x, y);
 
     if (bld === -1) {
+      // no power -> nothing can grow
+      if (this.sparePower < this.powerNeed({ type, level: 1 })) return;
       // try to start a level-1 building
-      const chance = (0.04 + demand * 0.10) * (road ? 1 : 0.04);
+      const chance = (0.04 + demand * 0.10) * (road ? 1 : 0.04)
+        * (police ? 1.6 : 1) * (school && type === 'res' ? 1.4 : 1);
       if (this.rng() < chance && map.canGrow(x, y, type)) {
         map.placeBuilding(x, y, type, 1);
       }
@@ -170,12 +231,14 @@ const Sim = {
     const b = map.buildings.get(bld);
     if (!b || b.x !== x || b.y !== y) return;
     if (b.level >= 3) return;
+    if (b.powered === false) return; // unpowered buildings never level up
     // can only grow if the bigger footprint fits
     const nextStats = BUILDING_STATS[type][b.level + 1];
     const needSize = nextStats.tiles || 1;
     const fits = (needSize <= b.size) || map.canGrow(x, y, type);
     if (!fits) return;
-    const chance = (0.012 + demand * 0.035) * (road ? 1 : 0.1);
+    const chance = (0.012 + demand * 0.035) * (road ? 1 : 0.1)
+      * (police ? 1.5 : 1) * (school && type === 'res' ? 1.8 : 1);
     if (this.rng() < chance) {
       // remove old, place new (only if footprint clear)
       if (needSize > b.size) {
@@ -200,7 +263,7 @@ const Sim = {
     for (const b of this.map.buildings.values()) b.workers = 0;
     const workplaces = [];
     for (const b of this.map.buildings.values()) {
-      if (b.type === 'com' || b.type === 'ind') workplaces.push(b);
+      if (b.jobs > 0 && b.type !== 'res') workplaces.push(b);
     }
     // shuffle citizens, assign to nearest workplace with free slot
     const citizens = this.citizens.filter(c => c.state !== 'gone');
@@ -461,7 +524,7 @@ const Sim = {
     const map = this.map;
     const buildings = [];
     for (const b of map.buildings.values()) {
-      buildings.push({ id: b.id, type: b.type, level: b.level, x: b.x, y: b.y, size: b.size });
+      buildings.push({ id: b.id, type: b.type, level: b.level, x: b.x, y: b.y, size: b.size, svc: b.svc || null });
     }
     const data = {
       v: 1,
@@ -487,12 +550,18 @@ const Sim = {
     map.grid.set(data.grid);
     map.zoneOf.set(data.zone);
     for (const bd of data.buildings) {
-      const stats = BUILDING_STATS[bd.type][bd.level];
-      const b = {
-        id: bd.id, type: bd.type, level: bd.level, x: bd.x, y: bd.y, size: bd.size,
-        sprite: stats.sprite, name: stats.name,
-        pop: stats.pop, jobs: stats.jobs, workers: 0, builtDay: 0,
-      };
+      const b = bd.type === 'svc'
+        ? { id: bd.id, type: 'svc', svc: bd.svc, level: 1, x: bd.x, y: bd.y, size: 1,
+            sprite: SERVICE_STATS[bd.svc].sprite, name: SERVICE_STATS[bd.svc].name,
+            pop: 0, jobs: SERVICE_STATS[bd.svc].jobs, workers: 0, builtDay: 0 }
+        : (() => {
+            const stats = BUILDING_STATS[bd.type][bd.level];
+            return {
+              id: bd.id, type: bd.type, level: bd.level, x: bd.x, y: bd.y, size: bd.size,
+              sprite: stats.sprite, name: stats.name,
+              pop: stats.pop, jobs: stats.jobs, workers: 0, builtDay: 0,
+            };
+          })();
       map.buildings.set(b.id, b);
       for (let dy = 0; dy < b.size; dy++) {
         for (let dx = 0; dx < b.size; dx++) {

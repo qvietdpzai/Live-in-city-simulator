@@ -111,10 +111,31 @@ assert(m.place(cx - 1, roadY + 1, 'ind'), 'place ind zone');
 assert(m.get(cx, roadY) === TILES.ROAD, 'road tile set');
 assert(m.zoneOf[m.idx(cx - 1, roadY - 1)] === TILES.RES, 'zone recorded');
 
+console.log('== power & services ==');
+assert(sim.powerCapacity === 0 && sim.sparePower === 0, 'no power at start');
+sim.newDay();
+assert(m.buildings.size === 0, 'nothing grows without power');
+function placeAny(x, y1, y2, svc) {
+  if (m.get(x, y1) !== TILES.WATER) return m.placeService(x, y1, svc);
+  return m.placeService(x, y2, svc);
+}
+const plant = placeAny(cx - 4, roadY - 1, roadY + 1, 'power');
+assert(plant !== null, 'power plant placed');
+sim.computePower();
+assert(sim.powerCapacity === 150, 'power capacity = 150');
+assert(sim.sparePower > 0, 'spare power available');
+const policeB = placeAny(cx + 4, roadY - 1, roadY + 1, 'police');
+assert(policeB !== null, 'police station placed');
+const schoolB = placeAny(cx + 4, roadY + 1, roadY + 1, 'school');
+assert(schoolB !== null, 'school placed');
+assert(sim.serviceCoverage('police', cx, roadY), 'police covers centre');
+assert(sim.serviceCoverage('school', cx, roadY), 'school covers centre');
+
 sim.money = 10000;
 for (let i = 0; i < 40; i++) sim.newDay();
 const buildings = [...m.buildings.values()];
 assert(buildings.length > 0, 'buildings grew after 40 days (' + buildings.length + ')');
+assert(sim.powerDemand > 0, 'buildings consume power (' + sim.powerDemand + ')');
 assert(sim.population >= 0, 'population computed');
 assert(sim.demand.res >= 0 && sim.demand.res <= 1, 'res demand in range: ' + sim.demand.res.toFixed(2));
 assert(sim.demand.com >= 0 && sim.demand.com <= 1, 'com demand in range');
@@ -169,6 +190,7 @@ for (let i = 0; i < 5; i++) Render.draw();
 assert(true, 'Render.draw() runs 5 frames without throwing');
 UI.els.money = { textContent: '', classList: { add() {}, remove() {} } };
 UI.els.pop = { textContent: '' };
+UI.els.power = { textContent: '', parentElement: { classList: { toggle() {} } } };
 UI.els.jobs = { textContent: '' };
 UI.els.date = { textContent: '' };
 UI.els.time = { textContent: '' };

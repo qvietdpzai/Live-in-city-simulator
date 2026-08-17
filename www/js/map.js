@@ -48,6 +48,12 @@ const COSTS = {
   demolishRefund: 0.25,
 };
 
+const SERVICE_STATS = {
+  power:  { name: 'Power Plant',    sprite: 'powerPlant', jobs: 2, cost: 300, upkeep: 6, radius: 0 },
+  police: { name: 'Police Station', sprite: 'police',     jobs: 3, cost: 150, upkeep: 4, radius: 9 },
+  school: { name: 'School',         sprite: 'school',     jobs: 4, cost: 120, upkeep: 3, radius: 10 },
+};
+
 class CityMap {
   constructor(w, h) {
     this.w = w;
@@ -179,6 +185,25 @@ class CityMap {
         this.buildingAt[this.idx(x + dx, y + dy)] = id;
       }
     }
+    return b;
+  }
+
+  // Services (power plant / police / school) are placed directly,
+  // like zones they clear the tile and need road access.
+  placeService(x, y, svc) {
+    if (!this.inBounds(x, y)) return null;
+    if (!this.isBuildable(x, y)) return null;
+    if (this.buildingAt[this.idx(x, y)] !== -1) return null;
+    if (!this.roadAdjacent(x, y)) return null;
+    const info = SERVICE_STATS[svc];
+    const id = this.nextBldId++;
+    const b = {
+      id, type: 'svc', svc, level: 1, x, y, size: 1,
+      sprite: info.sprite, name: info.name,
+      pop: 0, jobs: info.jobs, workers: 0, builtDay: 0,
+    };
+    this.buildings.set(id, b);
+    this.buildingAt[this.idx(x, y)] = id;
     return b;
   }
 
