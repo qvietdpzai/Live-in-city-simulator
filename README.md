@@ -16,11 +16,9 @@ Every push runs the build pipelines — open the **Actions** tab of this repo an
 
 > 💡 You can also trigger a build any time: **Actions → workflow → "Run workflow"** (branch `main`).
 
-## ▶️ Play online (web)
+## ▶️ Play in a browser (web)
 
-The same game runs in any browser. Enable **Settings → Pages → Source: GitHub Actions** once and the included workflow deploys `www/` automatically — then open the Pages URL on any device.
-
-Or run locally:
+The same game runs in any browser — handy for a quick try on your PC:
 ```bash
 python3 -m http.server 8000 --directory www
 # open http://localhost:8000
@@ -61,7 +59,6 @@ package.json          build tooling (Capacitor + Electron)
 scripts/gen_assets.py regenerate sprite PNGs from js/sprites.js
 scripts/core_test.js  headless logic tests
 .github/workflows/
-  pages.yml           deploy www/ to GitHub Pages
   android.yml         build the APK on GitHub Actions
   desktop.yml         build Windows + Linux apps on GitHub Actions
 ```
@@ -100,6 +97,6 @@ Your city autosaves in the browser/app (localStorage) — 💾 saves manually, �
 
 - **📱 APK Android** — tải file `app-debug.apk` ở tab **Actions → "Build Android APK"** → mục `live-in-city-apk`, cài trực tiếp vào điện thoại.
 - **💻 App máy tính** — tải ở **Actions → "Build Desktop Apps"**: bản Windows là file `.exe` (hoặc `-portable.exe` không cần cài), bản Linux là file `.AppImage`.
-- **🌐 Bản web** — chơi trên trình duyệt, bật GitHub Pages trong Settings là có link.
+- **🌐 Bản web** — chơi thử trên trình duyệt: `python3 -m http.server 8000 --directory www` rồi mở `http://localhost:8000`.
 
 **Cách chơi:** vẽ đường → quy hoạch nhà ở / cửa hàng / nhà máy → xây **nhà máy điện** ⚡ (thiếu điện công trình không mọc) → thêm **đồn cảnh sát** 🚓 và **trường học** 🎓 để khu vực phát triển nhanh → thu thuế và nâng cấp công trình lên cấp 3.
