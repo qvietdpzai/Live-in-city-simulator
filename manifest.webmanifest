@@ -1,0 +1,23 @@
+{
+  "name": "Live in City — Pixel City Life Simulator",
+  "short_name": "Live in City",
+  "description": "A pixel-art city life simulator. Build roads, homes, shops and factories; watch your citizens live, work and wander the streets.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1b2233",
+  "theme_color": "#1b2233",
+  "icons": [
+    {
+      "src": "asset/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "asset/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
