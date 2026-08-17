@@ -156,6 +156,11 @@ const UI = {
     g.stroke();
   },
 
+  togglePause() {
+    Game.sim.speed = Game.sim.speed === 0 ? 1 : 0;
+    this.els.speedBtns.forEach(b => b.classList.toggle('active', parseFloat(b.dataset.speed) === Game.sim.speed));
+  },
+
   updateZoomLabel() {
     if (this.els.zoomLabel) this.els.zoomLabel.textContent = `${Render.zoom}×`;
   },
@@ -184,7 +189,14 @@ const UI = {
       const t = m.get(tile.x, tile.y);
       if (ZONE_INFO[t]) {
         const z = ZONE_INFO[t];
-        html = `<b>${z.label}</b><br><span class="hint">Zone waiting to develop…</span>`;
+        const type = z.id;
+        const prog = Game.sim.zoneProgress.get(tile.x + ',' + tile.y) || 0;
+        let reason;
+        if (!m.roadAdjacent(tile.x, tile.y)) reason = '🚧 Needs a road next to it';
+        else if (Game.sim.sparePower < Game.sim.powerNeed({ type, level: 1 })) reason = '⚡ Needs power — build a power plant';
+        else if (prog > 0 && prog < 1) reason = `🏗 Building… ${Math.round(prog * 100)}%`;
+        else reason = 'Waiting to develop…';
+        html = `<b>${z.label}</b><br><span class="hint">${reason}</span>`;
       } else if (t === TILES.ROAD) html = '<b>Road</b>';
       else if (t === TILES.TREE) html = '<b>Tree</b>';
       else if (t === TILES.WATER) html = '<b>River</b>';

@@ -187,11 +187,13 @@ const Render = {
 
         if (t === TILES.ROAD) this.drawRoadTile(ctx, x, y, sx, sy, tpx);
 
-        // zone tint
+        // zone tint + development progress bar
         if (t === TILES.RES || t === TILES.COM || t === TILES.IND || t === TILES.PARK) {
           const zi = m.zoneOf[m.idx(x, y)];
           if (zi && m.buildingAt[m.idx(x, y)] === -1) {
             ctx.drawImage(this.zoneCanvas[zi], sx, sy, tpx, tpx);
+            const prog = Game.sim.zoneProgress.get(x + ',' + y);
+            if (prog && prog > 0 && prog < 1) this.drawProgressBar(sx, sy, tpx, prog);
           }
         }
 
@@ -316,6 +318,17 @@ const Render = {
     const w = s.size * px, h = s.size * px;
     const canvas = Game.sim.daylight() < 0.45 ? this.spriteCache[name].night : this.spriteCache[name].day;
     this.ctx.drawImage(canvas, sx, sy, w, h);
+  },
+
+  /* small progress bar under a zone that is developing */
+  drawProgressBar(sx, sy, tpx, prog) {
+    const ctx = this.ctx;
+    const bw = tpx - 6, bh = Math.max(3, Math.floor(tpx * 0.12));
+    const bx = sx + 3, by = sy + tpx - bh - 3;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = '#ffd75e';
+    ctx.fillRect(bx, by, Math.max(1, Math.round(bw * Math.min(1, prog))), bh);
   },
 
   /* dark overlay + lightning marker for buildings without power */

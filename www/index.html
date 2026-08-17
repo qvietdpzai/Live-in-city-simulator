@@ -90,7 +90,10 @@
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
   <script>
-    document.getElementById('startBtn').addEventListener('click', () => UI.closeTutorial());
+    document.getElementById('startBtn').addEventListener('click', () => {
+      UI.closeTutorial();
+      Game.tryLockLandscape();
+    });
     document.getElementById('zoomIn').addEventListener('click', () => {
       Render.zoom = Math.min(4, Render.zoom + 1); Render.clampCamera(); UI.updateZoomLabel();
     });

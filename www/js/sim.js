@@ -31,6 +31,8 @@ const Sim = {
   popHistory: [],            // for the stats sparkline
   rng: null,
   saveKey: 'live-in-city-save-v1',
+  growTimer: 0,              // drives continuous zone development
+  zoneProgress: new Map(),   // "x,y" -> 0..1 build progress (TheoTown-style)
 
   init(map) {
     this.map = map;
@@ -39,6 +41,8 @@ const Sim = {
     this.cars = [];
     this.popHistory = [];
     this.nextCitizenId = 1;
+    this.zoneProgress = new Map();
+    this.growTimer = 0;
     this.computePower();
   },
 
@@ -102,6 +106,13 @@ const Sim = {
     if (this.weatherTimer <= 0) {
       this.weatherTimer = 20 + this.rng() * 40;
       this.weather = this.rng() < 0.18 ? 'rain' : 'clear';
+    }
+    // continuous zone development (TheoTown-style): zones build up
+    // progress over a few seconds instead of waiting for next day
+    this.growTimer += dtSim;
+    if (this.growTimer >= 1.0) {
+      this.growTimer = 0;
+      this.growBuildings();
     }
     this.updateCitizens(dtSim);
     this.updateCars(dtSim);
@@ -195,6 +206,24 @@ const Sim = {
         }
       }
     }
+    // prune build progress for zones that were removed or already built
+    for (const [k, p] of this.zoneProgress) {
+      const isLvl = k.startsWith('lvl');
+      const coords = isLvl ? k.slice(3) : k;
+      const [px, py] = coords.split(',').map(Number);
+      const t = map.get(px, py);
+      const zi = map.zoneOf[map.idx(px, py)];
+      if (isLvl) {
+        // level-up progress is only valid while a building stands here
+        const bldId = map.buildingAt[map.idx(px, py)];
+        const b = bldId !== -1 ? map.buildings.get(bldId) : null;
+        if (!b || b.x !== px || b.y !== py || b.level >= 3) this.zoneProgress.delete(k);
+        continue;
+      }
+      const stillZone = (t === TILES.RES || t === TILES.COM || t === TILES.IND) && zi === t;
+      const built = map.buildingAt[map.idx(px, py)] !== -1;
+      if (!stillZone || built) this.zoneProgress.delete(k);
+    }
     // shuffle for fairness
     for (let i = zones.length - 1; i > 0; i--) {
       const j = Math.floor(this.rng() * (i + 1));
@@ -211,19 +240,28 @@ const Sim = {
     const map = this.map;
     const type = ZONE_INFO[tileType].id;
     const bld = map.buildingAt[map.idx(x, y)];
-    const demand = this.demand[type];
-    const road = map.roadAdjacent(x, y);
+    const key = x + ',' + y;
     const police = this.serviceCoverage('police', x, y);
     const school = this.serviceCoverage('school', x, y);
 
     if (bld === -1) {
-      // no power -> nothing can grow
-      if (this.sparePower < this.powerNeed({ type, level: 1 })) return;
-      // try to start a level-1 building
-      const chance = (0.04 + demand * 0.10) * (road ? 1 : 0.04)
-        * (police ? 1.6 : 1) * (school && type === 'res' ? 1.4 : 1);
-      if (this.rng() < chance && map.canGrow(x, y, type)) {
+      // A zone only develops next to a road, with power and demand.
+      const road = map.roadAdjacent(x, y);
+      if (!road) { this.zoneProgress.delete(key); return; }
+      if (this.sparePower < this.powerNeed({ type, level: 1 })) {
+        this.zoneProgress.delete(key);
+        return;
+      }
+      const demand = this.demand[type];
+      // progress per grow tick (~every 1s): base + demand, boosted by services
+      let gain = (0.06 + demand * 0.5) * (police ? 1.7 : 1);
+      if (school && type === 'res') gain *= 1.6;
+      const p = (this.zoneProgress.get(key) || 0) + gain * (0.75 + this.rng() * 0.5);
+      this.zoneProgress.set(key, p);
+      if (p >= 1 && map.canGrow(x, y, type)) {
         map.placeBuilding(x, y, type, 1);
+        this.zoneProgress.delete(key);
+        this.computePower();
       }
       return;
     }
@@ -232,28 +270,35 @@ const Sim = {
     if (!b || b.x !== x || b.y !== y) return;
     if (b.level >= 3) return;
     if (b.powered === false) return; // unpowered buildings never level up
+    const demand = this.demand[type];
+    const road = map.roadAdjacent(x, y);
     // can only grow if the bigger footprint fits
     const nextStats = BUILDING_STATS[type][b.level + 1];
     const needSize = nextStats.tiles || 1;
     const fits = (needSize <= b.size) || map.canGrow(x, y, type);
     if (!fits) return;
-    const chance = (0.012 + demand * 0.035) * (road ? 1 : 0.1)
-      * (police ? 1.5 : 1) * (school && type === 'res' ? 1.8 : 1);
-    if (this.rng() < chance) {
-      // remove old, place new (only if footprint clear)
-      if (needSize > b.size) {
-        map.removeBuilding(b.id);
-        map.placeBuilding(x, y, type, b.level + 1);
-      } else {
-        b.level++;
-        const st = nextStats;
-        b.sprite = st.sprite;
-        b.name = st.name;
-        b.pop = st.pop;
-        b.jobs = st.jobs;
-        b.builtDay = this.day;
-      }
+    // level-up is also progress-based so upgrades feel steady
+    const key2 = 'lvl' + key;
+    let lp = this.zoneProgress.get(key2) || 0;
+    const gain = (0.02 + demand * 0.25) * (road ? 1 : 0.1)
+      * (police ? 1.6 : 1) * (school && type === 'res' ? 1.8 : 1);
+    lp += gain;
+    if (lp < 1) { this.zoneProgress.set(key2, lp); return; }
+    this.zoneProgress.delete(key2);
+    // remove old, place new (only if footprint clear)
+    if (needSize > b.size) {
+      map.removeBuilding(b.id);
+      map.placeBuilding(x, y, type, b.level + 1);
+    } else {
+      b.level++;
+      const st = nextStats;
+      b.sprite = st.sprite;
+      b.name = st.name;
+      b.pop = st.pop;
+      b.jobs = st.jobs;
+      b.builtDay = this.day;
     }
+    this.computePower();
   },
 
   /* ---------------- jobs & citizens ---------------- */
@@ -465,8 +510,8 @@ const Sim = {
     // spawn occasionally
     if (this.cars.length < 14 && this.rng() < dt * 0.35) {
       const start = this.randomRoadTile();
-      if (start) {
-        const end = this.randomRoadTile();
+      const end = this.randomRoadTile();
+      if (start && end) {
         const path = this.findRoadPath(start, end);
         if (path && path.length > 1) {
           this.cars.push({

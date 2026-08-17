@@ -34,6 +34,16 @@ const Game = {
     requestAnimationFrame((t) => { this.lastTime = t; this.loop(t); });
   },
 
+  /* ---------- landscape orientation (phones/tablets) ---------- */
+
+  tryLockLandscape() {
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (!isTouch) return; // desktop stays free
+    if (!window.screen || !screen.orientation || !screen.orientation.lock) return;
+    // lock to landscape so the city fits the screen like TheoTown
+    screen.orientation.lock('landscape').catch(() => {});
+  },
+
   /* A small pre-built start so the player sees life immediately */
   seedStarterCity() {
     const m = this.map;

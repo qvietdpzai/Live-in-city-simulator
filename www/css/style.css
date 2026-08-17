@@ -316,16 +316,54 @@ button:active { transform: scale(0.94); }
 }
 #startBtn:hover { background: #ffe08a; }
 
-/* ---------- mobile ---------- */
+/* ---------- mobile (portrait) ---------- */
 
 @media (max-width: 760px) {
-  #hud { font-size: 11px; gap: 5px; padding: 4px 6px; }
-  .stat { padding: 3px 6px; }
-  .demand-track { width: 28px; }
-  .speed-btn { padding: 3px 7px; }
+  #hud { font-size: 11px; gap: 4px; padding: 3px 5px; }
+  .hud-left, .hud-right { gap: 4px; }
+  .stat { padding: 2px 5px; font-size: 11px; }
+  .demand-track { width: 24px; height: 6px; }
+  .demand-label { font-size: 10px; }
+  .tax-ctl { display: none; }        /* tax via toolbar is enough on phones */
+  #spark { display: none; }          /* save horizontal space */
+  .stat#weather { display: none; }
+  .speed-btn { padding: 2px 6px; font-size: 13px; }
+  .hud-controls button { padding: 2px 7px; }
   #toolbar { justify-content: flex-start; }
-  .tool-btn { min-width: 56px; padding: 5px 7px; }
-  .tool-btn .tool-icon canvas { width: 26px; height: 26px; }
-  #zoomctl { bottom: 70px; }
-  .tutorial-card { padding: 16px 18px; }
+  .tool-btn { min-width: 50px; padding: 4px 6px; }
+  .tool-btn .tool-icon canvas { width: 22px; height: 22px; }
+  .tool-btn .tool-label { font-size: 10px; }
+  #zoomctl { bottom: 66px; }
+  .tutorial-card { padding: 14px 16px; }
+}
+
+@media (max-width: 480px) {
+  .stat#date, .stat#time { display: none; }   /* keep only essentials */
+}
+
+/* ---------- landscape / short screens ---------- */
+
+@media (max-height: 520px) and (orientation: landscape) {
+  #hud { font-size: 11px; gap: 4px; padding: 2px 5px; }
+  .stat { padding: 1px 5px; font-size: 11px; }
+  .demand-track { width: 22px; height: 5px; }
+  .demand-label { font-size: 10px; }
+  #spark { display: none; }
+  .stat#weather, .stat#date { display: none; }
+  .tax-ctl { display: none; }
+  .speed-btn { padding: 1px 5px; font-size: 12px; }
+  .hud-controls button { padding: 1px 6px; }
+  #toolbar { padding: 3px 6px; }
+  .tool-btn { min-width: 46px; padding: 2px 5px; }
+  .tool-btn .tool-icon canvas { width: 20px; height: 20px; }
+  .tool-btn .tool-label { font-size: 9px; }
+  #zoomctl { right: 8px; bottom: 54px; }
+}
+
+/* rotate hint on narrow portrait screens */
+#rotateHint {
+  display: none;
+}
+@media (max-height: 420px) {
+  #rotateHint { display: none; }
 }

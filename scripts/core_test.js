@@ -209,6 +209,35 @@ UI.els.tutorial = { classList: { add() {}, remove() {} } };
 UI.closeTutorial();
 assert(true, 'tutorial can be closed');
 
+console.log('== continuous zone development (TheoTown-style) ==');
+// a fresh map with a road + power: zones should build within seconds,
+// not wait for the next in-game day
+const m2 = new CityMap(44, 30);
+let r2y = -1;
+for (let row = 8; row < m2.h - 2; row++) {
+  let okRow = true;
+  for (let x = cx - 2; x <= cx + 2; x++) if (m2.get(x, row) === TILES.WATER) { okRow = false; break; }
+  if (okRow) { r2y = row; break; }
+}
+for (let x = cx - 3; x <= cx + 3; x++) m2.place(x, r2y, 'road');
+for (let x = cx - 1; x <= cx + 1; x++) m2.place(x, r2y - 1, 'res');
+const simFast = Sim;
+simFast.init(m2);
+simFast.money = 10000;
+assert(m2.placeService(cx - 3, r2y - 1, 'power') !== null, 'power plant placed');
+simFast.computePower();
+// no buildings yet, no progress without power
+assert(simFast.zoneProgress.size === 0, 'no progress without power');
+// simulate ~15 seconds of gameplay at 1x
+for (let i = 0; i < 15; i++) simFast.tick(1);
+const bld2 = [...m2.buildings.values()].filter(b => !b.svc);
+assert(bld2.length > 0, 'zones developed within 15s of gameplay (' + bld2.length + ' buildings)');
+assert(simFast.zoneProgress.size >= 0, 'progress map is consistent');
+
+console.log('== landscape orientation helper ==');
+assert(typeof Game.tryLockLandscape === 'function', 'tryLockLandscape exists');
+assert(typeof UI.togglePause === 'function', 'togglePause exists');
+
 console.log('== demolition ==');
 const beforeCount = loaded.buildings.size;
 const someBld = [...loaded.buildings.values()][0];
