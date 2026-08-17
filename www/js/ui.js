@@ -7,15 +7,15 @@ const UI = {
   selectedTool: 'road',
 
   TOOLS: [
-    { id: 'road', key: '1', label: 'Road', icon: 'road' },
-    { id: 'res', key: '2', label: 'House', icon: 'res1' },
-    { id: 'com', key: '3', label: 'Shop', icon: 'shop1' },
-    { id: 'ind', key: '4', label: 'Factory', icon: 'ind1' },
-    { id: 'park', key: '5', label: 'Park', icon: 'park' },
-    { id: 'power', key: '6', label: 'Power', icon: 'powerPlant' },
-    { id: 'police', key: '7', label: 'Police', icon: 'police' },
-    { id: 'school', key: '8', label: 'School', icon: 'school' },
-    { id: 'demolish', key: '9', label: 'Demolish', icon: 'demolish' },
+    { id: 'road', key: '1', label: 'Road', icon: 'road', cost: 20 },
+    { id: 'res', key: '2', label: 'House', icon: 'res1', cost: 15 },
+    { id: 'com', key: '3', label: 'Shop', icon: 'shop1', cost: 15 },
+    { id: 'ind', key: '4', label: 'Factory', icon: 'ind1', cost: 15 },
+    { id: 'park', key: '5', label: 'Park', icon: 'park', cost: 8 },
+    { id: 'power', key: '6', label: 'Power', icon: 'powerPlant', cost: 300 },
+    { id: 'police', key: '7', label: 'Police', icon: 'police', cost: 150 },
+    { id: 'school', key: '8', label: 'School', icon: 'school', cost: 120 },
+    { id: 'demolish', key: '9', label: 'Demolish', icon: 'demolish', cost: 0 },
   ],
 
   init() {
@@ -38,9 +38,15 @@ const UI = {
     this.els.helpBtn = document.getElementById('helpBtn');
     this.els.spark = document.getElementById('spark');
     this.els.zoomLabel = document.getElementById('zoomLabel');
+    this.els.minimap = document.getElementById('minimap');
+    this.els.pauseBanner = document.getElementById('pauseBanner');
+    this.els.modal = document.getElementById('modal');
+    this.els.modalTitle = document.getElementById('modalTitle');
+    this.els.modalMsg = document.getElementById('modalMsg');
 
     this.buildToolbar();
     this.bindControls();
+    this.bindMinimap();
 
     if (localStorage.getItem('live-in-city-tutorial-seen') !== '1') {
       this.showTutorial();
@@ -63,6 +69,12 @@ const UI = {
       lbl.textContent = t.label;
       btn.appendChild(icon);
       btn.appendChild(lbl);
+      if (t.cost > 0) {
+        const cost = document.createElement('span');
+        cost.className = 'tool-cost';
+        cost.textContent = fmtMoney(t.cost);
+        btn.appendChild(cost);
+      }
       btn.addEventListener('click', () => { AudioFX.click(); this.selectTool(t.id); });
       bar.appendChild(btn);
     }
@@ -95,14 +107,97 @@ const UI = {
     });
     this.els.helpBtn.addEventListener('click', () => this.showTutorial());
     document.getElementById('resetBtn')?.addEventListener('click', () => {
-      if (confirm('Start a brand new city? Your current city will be erased.')) {
-        Game.resetCity();
-      }
+      this.confirm(
+        'Start a new city?',
+        'Your current city will be erased and a fresh starter city will be created.',
+        () => Game.resetCity());
     });
     document.getElementById('saveBtn')?.addEventListener('click', () => {
       Game.sim.save();
       this.toast('City saved to this browser');
     });
+    // confirmation modal buttons
+    this.els.modalNo?.addEventListener('click', () => this.closeModal());
+    this.els.modalYes?.addEventListener('click', () => {
+      const cb = this._modalCb;
+      this.closeModal();
+      if (cb) cb();
+    });
+    this.els.modal?.addEventListener('click', (e) => {
+      if (e.target === this.els.modal) this.closeModal();
+    });
+  },
+
+  /* ---------- confirmation modal ---------- */
+
+  confirm(title, msg, onYes) {
+    if (!this.els.modal) { if (window.confirm && typeof window.confirm === 'function') window.confirm(msg); return; }
+    this.els.modalTitle.textContent = title;
+    this.els.modalMsg.textContent = msg;
+    this._modalCb = onYes;
+    this.els.modal.classList.add('open');
+  },
+
+  closeModal() {
+    this.els.modal?.classList.remove('open');
+    this._modalCb = null;
+  },
+
+  /* ---------- minimap ---------- */
+
+  bindMinimap() {
+    const c = this.els.minimap;
+    if (!c) return;
+    c.addEventListener('click', (e) => {
+      const m = Game.map;
+      if (!m) return;
+      const r = c.getBoundingClientRect();
+      const mx = e.clientX - r.left, my = e.clientY - r.top;
+      const vw = Render.canvas.clientWidth / Render.tilePx() * TILE;
+      const vh = Render.canvas.clientHeight / Render.tilePx() * TILE;
+      Render.camX = mx / c.width * (m.w * TILE) - vw / 2;
+      Render.camY = my / c.height * (m.h * TILE) - vh / 2;
+      Render.clampCamera();
+    });
+  },
+
+  drawMinimap() {
+    const c = this.els.minimap;
+    if (!c) return;
+    const m = Game.map;
+    const g = c.getContext('2d');
+    const cw = c.width, ch = c.height;
+    const sxp = cw / m.w, syp = ch / m.h;
+    g.clearRect(0, 0, cw, ch);
+    g.fillStyle = '#24304a';
+    g.fillRect(0, 0, cw, ch);
+    for (let y = 0; y < m.h; y++) {
+      for (let x = 0; x < m.w; x++) {
+        const t = m.get(x, y);
+        let col = '#6aa94e';
+        if (t === TILES.WATER) col = '#2b4aa0';
+        else if (t === TILES.SAND) col = '#c9b06a';
+        else if (t === TILES.TREE) col = '#3f8a45';
+        else if (t === TILES.PARK) col = '#7fc66a';
+        else if (t === TILES.ROAD) col = '#5a5a5a';
+        else if (t === TILES.RES) col = '#d8c458';
+        else if (t === TILES.COM) col = '#6ab4e8';
+        else if (t === TILES.IND) col = '#e88a6a';
+        g.fillStyle = col;
+        g.fillRect(Math.floor(x * sxp), Math.floor(y * syp), Math.ceil(sxp), Math.ceil(syp));
+      }
+    }
+    for (const b of m.buildings.values()) {
+      g.fillStyle = b.svc ? '#ffd75e' : '#ffffff';
+      g.fillRect(Math.floor(b.x * sxp), Math.floor(b.y * syp), Math.max(1, Math.ceil(sxp)), Math.max(1, Math.ceil(syp)));
+    }
+    // viewport rectangle
+    const vw = Render.canvas.clientWidth / Render.tilePx() * TILE;
+    const vh = Render.canvas.clientHeight / Render.tilePx() * TILE;
+    g.strokeStyle = '#ffffff';
+    g.lineWidth = 1;
+    g.strokeRect(Render.camX / (m.w * TILE) * cw, Render.camY / (m.h * TILE) * ch,
+      vw / (m.w * TILE) * cw, vh / (m.h * TILE) * ch);
   },
 
   /* ---------- HUD refresh ---------- */
@@ -131,6 +226,16 @@ const UI = {
 
     // sparkline
     this.drawSpark();
+
+    // pause banner
+    if (this.els.pauseBanner) this.els.pauseBanner.classList.toggle('show', sim.speed === 0);
+
+    // minimap refresh ~once per second
+    this._mmTimer = (this._mmTimer || 0) + 1;
+    if (this._mmTimer >= 8) {
+      this._mmTimer = 0;
+      this.drawMinimap();
+    }
 
     if (sim.money < 0) this.els.money.classList.add('negative');
     else this.els.money.classList.remove('negative');
@@ -176,13 +281,13 @@ const UI = {
       html = `<b>${b.name}</b> <span class="lvl">Lv.${b.level}</span>`;
       if (b.svc) {
         const r = SERVICE_STATS[b.svc].radius;
-        html += `<br>💼 ${b.workers}/${b.jobs} workers`;
+        html += `<br>💼 ${b.workers}/${b.jobs} workers` + this.statBar(b.workers, b.jobs, '#7fd0ff');
         if (r) html += `<br><span class="hint">covers ${r} tiles around</span>`;
       } else if (b.type === 'res') {
         html += `<br>👥 ${b.pop} residents`;
         html += b.powered === false ? `<br><span class="no-power">⚡ no power</span>` : `<br><span class="hint">⚡ powered</span>`;
       } else {
-        html += `<br>💼 ${b.workers}/${b.jobs} workers`;
+        html += `<br>💼 ${b.workers}/${b.jobs} workers` + this.statBar(b.workers, b.jobs, '#7fd0ff');
         html += b.powered === false ? `<br><span class="no-power">⚡ no power</span>` : `<br><span class="hint">⚡ powered</span>`;
       }
     } else {
@@ -222,6 +327,12 @@ const UI = {
   },
 
   hidePopup() { this.els.popup.style.display = 'none'; },
+
+  /* tiny stat bar used inside building popups */
+  statBar(val, max, color) {
+    const pct = max > 0 ? Math.min(100, Math.round(val / max * 100)) : 0;
+    return `<div class="pstat"><div class="pstat-track"><div class="pstat-fill" style="width:${pct}%;background:${color}"></div></div></div>`;
+  },
 
   /* ---------- tutorial / toast ---------- */
 

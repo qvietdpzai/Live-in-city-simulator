@@ -15,6 +15,8 @@ const Render = {
   hover: null,      // {x, y} tile under cursor
   hoverValid: null,
   rainDrops: [],
+  particles: [],    // floating FX: smoke, dust (x, y, vx, vy, life, max, color, size)
+  vignette: null,
 
   init(canvas) {
     this.canvas = canvas;
@@ -24,6 +26,27 @@ const Render = {
       this.rainDrops.push({ x: Math.random(), y: Math.random(), s: 0.6 + Math.random() * 0.9 });
     }
     this.prebuildSprites();
+  },
+
+  emitParticle(x, y, color, size, life, vx, vy) {
+    if (this.particles.length > 220) this.particles.shift();
+    this.particles.push({ x, y, color, size, life, max: life, vx, vy });
+  },
+
+  updateParticles() {
+    const ctx = this.ctx;
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+      if (p.life <= 0) { this.particles.splice(i, 1); continue; }
+      const a = Math.max(0, p.life / p.max) * 0.85;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
   },
 
   tilePx() { return TILE * this.zoom; },
@@ -165,6 +188,7 @@ const Render = {
 
     const waterFrame = Math.floor(this.frame / 24) % 2 === 0 ? 'water1' : 'water2';
     const rain = Game.sim.weather === 'rain';
+    const daylight = Game.sim.daylight();
 
     // terrain + zones + roads + buildings
     const drawnBld = new Set();
@@ -185,7 +209,10 @@ const Render = {
         }
         this.drawSprite(spriteName, sx, sy, tpx);
 
-        if (t === TILES.ROAD) this.drawRoadTile(ctx, x, y, sx, sy, tpx);
+        if (t === TILES.ROAD) {
+          this.drawRoadTile(ctx, x, y, sx, sy, tpx);
+          if (daylight < 0.5 && (x * 7 + y * 13) % 11 === 0) this.drawLampGlow(sx, sy, tpx, daylight);
+        } else if (t === TILES.WATER) this.drawWaterEdge(ctx, x, y, sx, sy, tpx);
 
         // zone tint + development progress bar
         if (t === TILES.RES || t === TILES.COM || t === TILES.IND || t === TILES.PARK) {
@@ -193,7 +220,16 @@ const Render = {
           if (zi && m.buildingAt[m.idx(x, y)] === -1) {
             ctx.drawImage(this.zoneCanvas[zi], sx, sy, tpx, tpx);
             const prog = Game.sim.zoneProgress.get(x + ',' + y);
-            if (prog && prog > 0 && prog < 1) this.drawProgressBar(sx, sy, tpx, prog);
+            if (prog && prog > 0 && prog < 1) {
+              this.drawProgressBar(sx, sy, tpx, prog);
+              // construction dust while a zone is being built
+              if (Math.random() < 0.035) {
+                this.emitParticle(
+                  sx + Math.random() * tpx, sy + Math.random() * tpx,
+                  'rgba(196,182,158,0.9)', Math.max(2, Math.floor(tpx * 0.14)), 20,
+                  (Math.random() - 0.5) * 0.3 * tpx / TILE, -(0.35 + Math.random() * 0.3) * tpx / TILE);
+              }
+            }
           }
         }
 
@@ -203,7 +239,27 @@ const Render = {
           drawnBld.add(bldId);
           const b = m.buildings.get(bldId);
           if (b && b.x === x && b.y === y) {
+            const s = SPRITES[b.sprite];
+            const bw = s ? s.size * tpx / TILE : tpx;
+            const bh = s ? s.size * tpx / TILE : tpx;
+            // drop shadow for depth
+            this.drawShadowEllipse(sx + bw / 2, sy + bh - tpx * 0.06, bw * 0.55, tpx * 0.16);
             this.drawBuilding(b, sx, sy, tpx);
+            // factory chimney smoke
+            if (b.type === 'ind' && b.level >= 2 && Math.random() < 0.06) {
+              this.emitParticle(
+                sx + tpx * (0.25 + Math.random() * 0.5), sy + tpx * 0.05,
+                'rgba(208,208,214,0.85)', Math.max(2, Math.floor(tpx * 0.16)), 28,
+                (Math.random() - 0.5) * 0.25 * tpx / TILE, -(0.5 + Math.random() * 0.35) * tpx / TILE);
+            }
+            // night ambient glow from windows
+            if (daylight < 0.5) {
+              const gx = sx + bw / 2, gy = sy + bh * 0.55;
+              const ga = (0.5 - daylight) * 0.22;
+              this.fillGradientRect(gx, gy, 1, gx, gy, bw * 0.85,
+                [[0, `rgba(255,214,120,${ga})`], [1, 'rgba(255,214,120,0)']],
+                sx - bw * 0.4, sy - bh * 0.3, bw * 1.8, bh * 1.6);
+            }
             if (!b.svc && b.powered === false) this.drawNoPower(sx, sy, tpx, b.size || 1);
           }
         }
@@ -217,13 +273,21 @@ const Render = {
       const s = SPRITES[name].size;
       const px = ox + c.px / TILE * tpx - (s * tpx / TILE) / 2 + tpx / 2;
       const py = oy + c.py / TILE * tpx - (s * tpx / TILE) + tpx / 2;
+      this.drawShadowEllipse(px + (s * tpx / TILE) / 2, py + (s * tpx / TILE) - tpx * 0.04, tpx * 0.32, tpx * 0.09);
       this.drawSprite(name, px, py, tpx);
     }
 
     // cars
     for (const car of Game.sim.cars) {
+      const cs = 3 * tpx / TILE;
+      const cx2 = ox + car.px / TILE * tpx;
+      const cy2 = oy + car.py / TILE * tpx;
+      this.drawShadowEllipse(cx2, cy2 + cs * 0.1, cs * 0.9, cs * 0.35);
       this.drawCar(ctx, car, ox, oy, tpx);
     }
+
+    // floating particles (smoke / dust)
+    this.updateParticles();
 
     // weather: rain
     if (rain) {
@@ -241,12 +305,11 @@ const Render = {
       ctx.restore();
     }
 
-    // night overlay
-    const daylight = Game.sim.daylight();
-    if (daylight < 1) {
-      ctx.fillStyle = `rgba(10, 18, 48, ${(1 - daylight) * 0.55})`;
-      ctx.fillRect(0, 0, cw, ch);
-    }
+    // sunrise/sunset tint + night overlay + street lamps
+    this.applySkyTint(daylight, cw, ch);
+
+    // subtle vignette for depth
+    this.applyVignette(cw, ch);
 
     // hover highlight
     if (this.hover && m.inBounds(this.hover.x, this.hover.y)) {
@@ -308,6 +371,15 @@ const Render = {
         ctx.fillRect(cx, dy, px * 2, dash);
       }
     }
+    // crosswalk stripes at a 4-way intersection
+    if (up && down && left && right) {
+      ctx.fillStyle = '#dfe3ea';
+      for (let i = 0; i < 3; i++) {
+        const off = px * 3 + i * px * 4;
+        ctx.fillRect(sx + off, sy + tpx / 2 - px * 3, px * 2, px * 6);
+        ctx.fillRect(sx + tpx / 2 - px * 3, sy + off, px * 6, px * 2);
+      }
+    }
   },
 
   drawBuilding(b, sx, sy, tpx) {
@@ -318,6 +390,96 @@ const Render = {
     const w = s.size * px, h = s.size * px;
     const canvas = Game.sim.daylight() < 0.45 ? this.spriteCache[name].night : this.spriteCache[name].day;
     this.ctx.drawImage(canvas, sx, sy, w, h);
+  },
+
+  /* soft ellipse shadow under entities/buildings */
+  drawShadowEllipse(cx, cy, rx, ry) {
+    const ctx = this.ctx;
+    ctx.fillStyle = 'rgba(10,14,26,0.30)';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, Math.max(1, rx), Math.max(1, ry), 0, 0, Math.PI * 2);
+    ctx.fill();
+  },
+
+  /* radial-gradient fill that degrades to a flat tint if the
+     gradient API is unavailable (e.g. headless test stubs) */
+  fillGradientRect(cx, cy, r0, gx2, gy2, r1, stops, x, y, w, h) {
+    const ctx = this.ctx;
+    try {
+      const grad = ctx.createRadialGradient(cx, cy, r0, gx2, gy2, r1);
+      for (const [off, col] of stops) grad.addColorStop(off, col);
+      ctx.fillStyle = grad;
+    } catch (e) {
+      ctx.fillStyle = stops.length ? stops[0][1] : 'rgba(255,255,255,0.2)';
+    }
+    ctx.fillRect(x, y, w, h);
+  },
+
+  /* foam pixels where water meets land */
+  drawWaterEdge(ctx, x, y, sx, sy, tpx) {
+    const m = Game.map;
+    const px = tpx / TILE;
+    const isShore = (nx, ny) => {
+      if (!m.inBounds(nx, ny)) return false;
+      const nt = m.get(nx, ny);
+      return nt !== TILES.WATER;
+    };
+    ctx.fillStyle = 'rgba(235,240,255,0.45)';
+    if (isShore(x, y - 1)) for (let i = 1; i < TILE - 1; i += 2) ctx.fillRect(sx + i * px, sy, px, px * (0.6 + (i % 4) * 0.2));
+    if (isShore(x, y + 1)) for (let i = 1; i < TILE - 1; i += 2) ctx.fillRect(sx + i * px, sy + tpx - px, px, px * (0.6 + (i % 4) * 0.2));
+    if (isShore(x - 1, y)) for (let i = 1; i < TILE - 1; i += 2) ctx.fillRect(sx, sy + i * px, px * (0.6 + (i % 4) * 0.2), px);
+    if (isShore(x + 1, y)) for (let i = 1; i < TILE - 1; i += 2) ctx.fillRect(sx + tpx - px, sy + i * px, px * (0.6 + (i % 4) * 0.2), px);
+  },
+
+  /* warm glow of street lamps at night */
+  drawLampGlow(sx, sy, tpx, daylight) {
+    const px = tpx / TILE;
+    const gx = sx + tpx / 2, gy = sy + tpx / 2;
+    const ga = (0.5 - daylight) * 0.35;
+    this.fillGradientRect(gx, gy, px, gx, gy, tpx * 0.9,
+      [[0, `rgba(255,220,130,${ga.toFixed(3)})`], [1, 'rgba(255,220,130,0)']],
+      sx - tpx * 0.5, sy - tpx * 0.5, tpx * 2, tpx * 2);
+  },
+
+  /* dawn/dusk warm tint + blue night overlay */
+  applySkyTint(daylight, cw, ch) {
+    const ctx = this.ctx;
+    const h = Game.sim.hour();
+    let warm = 0;
+    if (h >= 5 && h < 8) {
+      warm = (h < 6.5 ? (h - 5) / 1.5 : 1 - (h - 6.5) / 1.5) * 0.20;
+    } else if (h >= 16 && h < 21) {
+      warm = (h < 18.5 ? (h - 16) / 2.5 : 1 - (h - 18.5) / 2.5) * 0.22;
+    }
+    if (warm > 0) {
+      ctx.fillStyle = `rgba(255,150,70,${warm.toFixed(3)})`;
+      ctx.fillRect(0, 0, cw, ch);
+    }
+    if (daylight < 1) {
+      ctx.fillStyle = `rgba(10,18,48,${((1 - daylight) * 0.55).toFixed(3)})`;
+      ctx.fillRect(0, 0, cw, ch);
+    }
+  },
+
+  /* soft edge darkening — adds polish */
+  applyVignette(cw, ch) {
+    if (!this.vignette || this.vignette.width !== Math.floor(cw) || this.vignette.height !== Math.floor(ch)) {
+      try {
+        const v = document.createElement('canvas');
+        v.width = Math.max(2, Math.floor(cw));
+        v.height = Math.max(2, Math.floor(ch));
+        const g = v.getContext('2d');
+        const grad = g.createRadialGradient(cw / 2, ch / 2, Math.min(cw, ch) * 0.42, cw / 2, ch / 2, Math.max(cw, ch) * 0.75);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, 'rgba(5,8,18,0.34)');
+        g.fillStyle = grad;
+        g.fillRect(0, 0, cw, ch);
+        this.vignette = v;
+      } catch (e) {
+        this.vignette = null;
+      }
+    }
+    if (this.vignette) this.ctx.drawImage(this.vignette, 0, 0, cw, ch);
   },
 
   /* small progress bar under a zone that is developing */

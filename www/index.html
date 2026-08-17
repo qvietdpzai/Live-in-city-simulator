@@ -55,6 +55,8 @@
         <span id="zoomLabel">2×</span>
         <button id="zoomIn" title="Zoom in">+</button>
       </div>
+      <canvas id="minimap" width="88" height="60" title="City map — click to jump"></canvas>
+      <div id="pauseBanner">⏸ Paused</div>
     </main>
 
     <!-- bottom toolbar -->
@@ -78,6 +80,18 @@
         <div><b>📱 Phone:</b> tap to build · drag to pan · pinch to zoom · long-press to demolish</div>
       </div>
       <button id="startBtn">Start building 🚧</button>
+    </div>
+  </div>
+
+  <!-- confirmation modal -->
+  <div id="modal">
+    <div class="modal-card">
+      <h2 id="modalTitle"></h2>
+      <p id="modalMsg"></p>
+      <div class="modal-btns">
+        <button id="modalYes" class="modal-danger">Yes</button>
+        <button id="modalNo">Cancel</button>
+      </div>
     </div>
   </div>
 
