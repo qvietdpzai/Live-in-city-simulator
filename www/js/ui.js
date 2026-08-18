@@ -358,12 +358,17 @@ hideMenu() {
 },
 
 startNewGame() {
+  console.log('[UI] startNewGame called');
   try {
     this.hideMenu();
     clearTimeout(this._menuTimeout);
+    console.log('[UI] Calling Game.resetCity()');
     Game.resetCity();
+    console.log('[UI] Calling closeTutorial');
     this.closeTutorial();
+    console.log('[UI] Showing toast');
     UI.toast('New city started!');
+    console.log('[UI] Scheduling landscape lock');
     setTimeout(Game.tryLockLandscape, 1000);
   } catch (e) {
     console.error('Start new game error:', e);
@@ -372,8 +377,11 @@ startNewGame() {
 },
 
 loadGame() {
+  console.log('[UI] loadGame called');
   try {
+    console.log('[UI] Calling Game.sim.load()');
     const loaded = Game.sim.load();
+    console.log('[UI] load result:', loaded);
     if (loaded) {
       this.hideMenu();
       this.toast('City loaded — welcome back!');
