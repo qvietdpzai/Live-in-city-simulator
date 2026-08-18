@@ -12,6 +12,7 @@ const UI = {
     { id: 'com', key: '3', label: 'Shop', icon: 'shop1', cost: 15 },
     { id: 'ind', key: '4', label: 'Factory', icon: 'ind1', cost: 15 },
     { id: 'park', key: '5', label: 'Park', icon: 'park', cost: 8 },
+    { id: 'bridge', key: '0', label: 'Bridge', icon: 'bridge', cost: 50 },
     { id: 'power', key: '6', label: 'Power', icon: 'powerPlant', cost: 300 },
     { id: 'police', key: '7', label: 'Police', icon: 'police', cost: 150 },
     { id: 'school', key: '8', label: 'School', icon: 'school', cost: 120 },

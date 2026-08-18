@@ -12,6 +12,7 @@ const TILES = {
   COM: 6,
   IND: 7,
   PARK: 8,
+  BRIDGE: 9,
 };
 
 const ZONE_INFO = {
@@ -45,6 +46,7 @@ const COSTS = {
   [TILES.COM]: 15,
   [TILES.IND]: 15,
   [TILES.PARK]: 8,
+  [TILES.BRIDGE]: 50,
   demolishRefund: 0.25,
 };
 
@@ -252,6 +254,21 @@ class CityMap {
         return true;
       }
       return false;
+    }
+    if (tool === 'bridge') {
+      // bridge can only be placed on water, connecting two road tiles
+      if (t !== TILES.WATER) return false;
+      const hasRoad = (dir) => {
+        const nx = x + dir[0], ny = y + dir[1];
+        return this.inBounds(nx, ny) && this.get(nx, ny) === TILES.ROAD;
+      };
+      // check if connecting two opposite sides
+      const hRoad = this.get(x - 1, y) === TILES.ROAD && this.get(x + 1, y) === TILES.ROAD;
+      const vRoad = this.get(x, y - 1) === TILES.ROAD && this.get(x, y + 1) === TILES.ROAD;
+      if (!hRoad && !vRoad) return false;
+      this.set(x, y, TILES.BRIDGE);
+      this.zoneOf[this.idx(x, y)] = 0;
+      return true;
     }
     if (tool === 'demolish') {
       return this.clearTile(x, y) !== null;

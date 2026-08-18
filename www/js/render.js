@@ -213,6 +213,7 @@ const Render = {
           this.drawRoadTile(ctx, x, y, sx, sy, tpx);
           if (daylight < 0.5 && (x * 7 + y * 13) % 11 === 0) this.drawLampGlow(sx, sy, tpx, daylight);
         } else if (t === TILES.WATER) this.drawWaterEdge(ctx, x, y, sx, sy, tpx);
+        else if (t === TILES.BRIDGE) this.drawBridge(ctx, x, y, sx, sy, tpx);
 
         // zone tint + development progress bar
         if (t === TILES.RES || t === TILES.COM || t === TILES.IND || t === TILES.PARK) {
@@ -371,13 +372,48 @@ const Render = {
         ctx.fillRect(cx, dy, px * 2, dash);
       }
     }
-    // crosswalk stripes at a 4-way intersection
-    if (up && down && left && right) {
-      ctx.fillStyle = '#dfe3ea';
-      for (let i = 0; i < 3; i++) {
+  },
+
+  drawBridge(ctx, x, y, sx, sy, tpx) {
+    const m = Game.map;
+    const px = tpx / TILE;
+    const isBridge = (nx, ny) => m.inBounds(nx, ny) && m.get(nx, ny) === TILES.BRIDGE;
+    const isRoad = (nx, ny) => m.inBounds(nx, ny) && m.get(nx, ny) === TILES.ROAD;
+    const up = isBridge(x, y - 1) || isRoad(x, y - 1);
+    const down = isBridge(x, y + 1) || isRoad(x, y + 1);
+    const left = isBridge(x - 1, y) || isRoad(x - 1, y);
+    const right = isBridge(x + 1, y) || isRoad(x + 1, y);
+    const hRoad = left || right;
+    const vRoad = up || down;
+
+    // bridge deck
+    ctx.fillStyle = '#8B7355'; // wood color
+    ctx.fillRect(sx, sy, tpx, tpx);
+    
+    // bridge edges/rails
+    ctx.fillStyle = '#6B5B42';
+    if (vRoad && !hRoad) {
+      // vertical bridge - rails on sides
+      ctx.fillRect(sx, sy, px * 2, tpx);
+      ctx.fillRect(sx + tpx - px * 2, sy, px * 2, tpx);
+    }
+    if (hRoad && !vRoad) {
+      // horizontal bridge - rails on top/bottom
+      ctx.fillRect(sx, sy, tpx, px * 2);
+      ctx.fillRect(sx, sy + tpx - px * 2, tpx, px * 2);
+    }
+    // planks
+    ctx.fillStyle = '#A0824A';
+    if (hRoad && !vRoad) {
+      for (let i = 0; i < 4; i++) {
         const off = px * 3 + i * px * 4;
-        ctx.fillRect(sx + off, sy + tpx / 2 - px * 3, px * 2, px * 6);
-        ctx.fillRect(sx + tpx / 2 - px * 3, sy + off, px * 6, px * 2);
+        ctx.fillRect(sx + off, sy, px * 2, tpx);
+      }
+    }
+    if (vRoad && !hRoad) {
+      for (let i = 0; i < 4; i++) {
+        const off = px * 3 + i * px * 4;
+        ctx.fillRect(sx, sy + off, tpx, px * 2);
       }
     }
   },
@@ -507,19 +543,44 @@ const Render = {
   },
 
   drawCar(ctx, car, ox, oy, tpx) {
-    const s = 3 * tpx / TILE; // car ~3px wide
-    const x = ox + car.px / TILE * tpx - s / 2;
-    const y = oy + car.py / TILE * tpx - s / 2;
+    // Vehicle type definitions
+    const vType = car.type || 'car';
+    const specs = {
+      car:    { w: 3, h: 1.8, colors: ['#d33', '#3a7bd5', '#e6a52e', '#3fae6a', '#b06ad1'] },
+      bus:    { w: 5, h: 2.2, colors: ['#e67e22', '#c0392b', '#8e44ad'] },
+      truck:  { w: 4.5, h: 2.0, colors: ['#7f8c8d', '#95a5a6', '#2c3e50'] },
+      truck2: { w: 6, h: 2.5, colors: ['#27ae60', '#2980b9', '#c0392b'] }, // large truck
+      moto:   { w: 2, h: 1.0, colors: ['#e74c3c', '#3498db', '#f1c40f'] }, // motorcycle
+      van:    { w: 3.5, h: 2.0, colors: ['#ecf0f1', '#bdc3c7', '#95a5a6'] },
+    };
+    const spec = specs[vType] || specs.car;
+    const s = spec.w * tpx / TILE;
+    const h = spec.h * tpx / TILE;
+    const x = ox + car.px / TILE * tpx;
+    const y = oy + car.py / TILE * tpx;
     ctx.save();
-    ctx.translate(x + s / 2, y + s / 2);
+    ctx.translate(x, y);
     if (car.dir === 'up' || car.dir === 'down') ctx.rotate(car.dir === 'up' ? Math.PI / 2 : -Math.PI / 2);
-    ctx.fillStyle = car.color;
-    ctx.fillRect(-s / 2, -s / 2, s, s * 0.6);
+    ctx.fillStyle = car.color || spec.colors[0];
+    // body
+    ctx.fillRect(-s / 2, -h / 2, s, h);
+    // window
     ctx.fillStyle = '#222';
-    ctx.fillRect(-s / 2, -s * 0.12, s, s * 0.24);
+    ctx.fillRect(-s / 2, -h * 0.15, s, h * 0.3);
     // headlights
     ctx.fillStyle = '#ffe08a';
-    ctx.fillRect(s / 2 - s * 0.2, -s / 2, s * 0.2, s * 0.18);
+    ctx.fillRect(s / 2 - s * 0.15, -h / 2, s * 0.15, h * 0.18);
+    // taillights
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(-s / 2, -h / 2 + h * 0.1, s * 0.1, h * 0.15);
+    ctx.fillRect(-s / 2, h / 2 - h * 0.25, s * 0.1, h * 0.15);
+    // wheels
+    ctx.fillStyle = '#111';
+    const wr = Math.max(1, Math.floor(h * 0.18));
+    ctx.fillRect(-s * 0.35, -h / 2 + h * 0.15, wr, wr);
+    ctx.fillRect(-s * 0.35, h / 2 - h * 0.3, wr, wr);
+    ctx.fillRect(s * 0.25, -h / 2 + h * 0.15, wr, wr);
+    ctx.fillRect(s * 0.25, h / 2 - h * 0.3, wr, wr);
     ctx.restore();
   },
 

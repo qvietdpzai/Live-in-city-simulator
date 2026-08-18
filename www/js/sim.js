@@ -507,18 +507,29 @@ const Sim = {
 
   updateCars(dt) {
     const map = this.map;
+    const vTypes = ['car', 'bus', 'truck', 'van', 'moto'];
     // spawn occasionally
-    if (this.cars.length < 14 && this.rng() < dt * 0.35) {
+    if (this.cars.length < 18 && this.rng() < dt * 0.45) {
       const start = this.randomRoadTile();
       const end = this.randomRoadTile();
       if (start && end) {
         const path = this.findRoadPath(start, end);
         if (path && path.length > 1) {
+          const vType = vTypes[Math.floor(this.rng() * vTypes.length)];
+          const spec = {
+            car:    { colors: ['#d33', '#3a7bd5', '#e6a52e', '#3fae6a', '#b06ad1'] },
+            bus:    { colors: ['#e67e22', '#c0392b', '#8e44ad'] },
+            truck:  { colors: ['#7f8c8d', '#95a5a6', '#2c3e50'] },
+            van:    { colors: ['#ecf0f1', '#bdc3c7', '#95a5a6'] },
+            moto:   { colors: ['#e74c3c', '#3498db', '#f1c40f'] },
+          };
+          const specColors = spec[vType].colors;
           this.cars.push({
             px: start[0] * TILE + TILE / 2,
             py: start[1] * TILE + TILE / 2,
             path, pathIdx: 0, dir: 'right', anim: 0,
-            color: ['#d33', '#3a7bd5', '#e6a52e', '#3fae6a', '#b06ad1'][Math.floor(this.rng() * 5)],
+            type: vType,
+            color: specColors[Math.floor(this.rng() * specColors.length)],
             life: 0,
           });
         }
