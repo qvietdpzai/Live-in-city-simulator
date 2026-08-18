@@ -316,7 +316,7 @@ const Render = {
     for (const c of Game.sim.citizens) {
       if (c.state === 'gone') continue;
       const name = this.playerSpriteName(c);
-      const s = SPRITES[name].size;
+      const s = SPRITES[name] ? SPRITES[name].size : (this.spriteCache[name] ? this.spriteCache[name].day.width : 12);
       const px = ox + c.px / TILE * tpx - (s * tpx / TILE) / 2 + tpx / 2;
       const py = oy + c.py / TILE * tpx - (s * tpx / TILE) + tpx / 2;
       this.drawShadowEllipse(px + (s * tpx / TILE) / 2, py + (s * tpx / TILE) - tpx * 0.04, tpx * 0.32, tpx * 0.09);

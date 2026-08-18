@@ -180,6 +180,8 @@ assert(sim2.money === sim.money, 'money restored');
 console.log('== render & UI smoke test ==');
 Game.map = m;
 Game.sim = sim;
+// make sure citizens exist so the citizen sprite path is exercised
+sim.spawnCitizens();
 const cv = fakeCanvas();
 Render.init(cv);
 assert(Object.keys(Render.spriteCache).length >= 20, 'sprite cache built (' + Object.keys(Render.spriteCache).length + ' sprites)');
