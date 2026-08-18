@@ -238,6 +238,30 @@ console.log('== landscape orientation helper ==');
 assert(typeof Game.tryLockLandscape === 'function', 'tryLockLandscape exists');
 assert(typeof UI.togglePause === 'function', 'togglePause exists');
 
+console.log('== player vehicle (drive mode) ==');
+Game.map = loaded;
+Game.sim = sim2;
+Render.init(fakeCanvas());
+Render.camX = 200; Render.camY = 100;
+const roadY3 = roadY;
+assert(typeof sim2.startDriving === 'function', 'startDriving exists');
+assert(typeof sim2.stopDriving === 'function', 'stopDriving exists');
+assert(typeof sim2.driveDir === 'function', 'driveDir exists');
+assert(typeof sim2.updatePlayerCar === 'function', 'updatePlayerCar exists');
+const okDrive = sim2.startDriving();
+assert(okDrive === true, 'can start driving near a road');
+if (sim2.playerCar) {
+  const before = sim2.playerCar.tx + ',' + sim2.playerCar.ty;
+  sim2.updatePlayerCar(0.5);
+  sim2.updatePlayerCar(0.5);
+  sim2.updatePlayerCar(0.5);
+  sim2.updatePlayerCar(0.5);
+  assert(true, 'player car updates without throwing');
+  sim2.stopDriving();
+  assert(sim2.playerCar === null, 'can stop driving');
+}
+
+
 console.log('== demolition ==');
 const beforeCount = loaded.buildings.size;
 const someBld = [...loaded.buildings.values()][0];

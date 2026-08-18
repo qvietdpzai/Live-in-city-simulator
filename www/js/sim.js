@@ -25,6 +25,7 @@ const Sim = {
   weatherTimer: 0,
   citizens: [],
   cars: [],
+  playerCar: null,          // when the player transforms into a car
   nextCitizenId: 1,
   incomeTotal: 0,
   upkeepTotal: 0,
@@ -95,7 +96,11 @@ const Sim = {
   /* ---------------- time ---------------- */
 
   tick(dt) {
-    if (this.speed === 0) return;
+    if (this.speed === 0) {
+      // even when paused, the player can still drive their car
+      this.updatePlayerCar(dt);
+      return;
+    }
     const dtSim = dt * this.speed;
     this.timeOfDay += (dtSim / this.dayLengthSec) * 1440;
     while (this.timeOfDay >= 1440) {
@@ -116,6 +121,7 @@ const Sim = {
     }
     this.updateCitizens(dtSim);
     this.updateCars(dtSim);
+    this.updatePlayerCar(dtSim);
   },
 
   hour() { return this.timeOfDay / 60; },
@@ -567,6 +573,81 @@ const Sim = {
       if (map.get(x, y) === TILES.ROAD) return [x, y];
     }
     return null;
+  },
+
+  /* ---------------- player vehicle ---------------- */
+
+  // Transform the player into a car parked on the nearest road tile.
+  startDriving() {
+    const map = this.map;
+    let best = null, bestD = Infinity;
+    const cx = Math.floor(Render.camX / TILE + Render.canvas.clientWidth / Render.tilePx() / 2);
+    const cy = Math.floor(Render.camY / TILE + Render.canvas.clientHeight / Render.tilePx() / 2);
+    for (let y = 0; y < map.h; y++) {
+      for (let x = 0; x < map.w; x++) {
+        if (map.get(x, y) !== TILES.ROAD) continue;
+        const d = Math.abs(x - cx) + Math.abs(y - cy);
+        if (d < bestD) { bestD = d; best = [x, y]; }
+      }
+    }
+    if (!best) return false;
+    this.playerCar = {
+      tx: best[0], ty: best[1],        // current tile (car snaps to tile centers)
+      px: best[0] * TILE + TILE / 2,
+      py: best[1] * TILE + TILE / 2,
+      dir: 'right',
+      desiredDir: null,
+      speed: 3.2,                       // tiles per second
+    };
+    return true;
+  },
+
+  stopDriving() {
+    this.playerCar = null;
+  },
+
+  // Ask the car to steer toward a direction at the next intersection.
+  driveDir(d) {
+    if (!this.playerCar) return;
+    this.playerCar.desiredDir = d;
+  },
+
+  updatePlayerCar(dt) {
+    const pc = this.playerCar;
+    if (!pc) return;
+    const map = this.map;
+    // center of the current tile (car always drives along tile centers)
+    const cx = pc.tx * TILE + TILE / 2;
+    const cy = pc.ty * TILE + TILE / 2;
+    const dx = cx - pc.px, dy = cy - pc.py;
+    const dist = Math.hypot(dx, dy);
+    const step = pc.speed * TILE * dt;
+    if (dist > step) {
+      pc.px += (dx / dist) * step;
+      pc.py += (dy / dist) * step;
+      return;
+    }
+    // arrived at the center of the current tile: pick the next tile
+    pc.px = cx; pc.py = cy;
+    // apply a desired turn if that direction is a road
+    const dirs = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+    let nd = pc.dir;
+    if (pc.desiredDir && pc.desiredDir !== pc.dir) {
+      const [ox2, oy2] = dirs[pc.desiredDir];
+      const t2 = map.get(pc.tx + ox2, pc.ty + oy2);
+      if (t2 === TILES.ROAD || t2 === TILES.BRIDGE) nd = pc.desiredDir;
+    }
+    pc.desiredDir = null;
+    const [ox, oy] = dirs[nd];
+    const nx = pc.tx + ox, ny = pc.ty + oy;
+    if (map.inBounds(nx, ny)) {
+      const t = map.get(nx, ny);
+      if (t === TILES.ROAD || t === TILES.BRIDGE) {
+        pc.dir = nd;
+        pc.tx = nx;
+        pc.ty = ny;
+      }
+    }
   },
 
   /* ---------------- stats & save ---------------- */

@@ -195,6 +195,16 @@ const Render = {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = false;
 
+    // follow the player car when driving
+    const pc = Game.sim.playerCar;
+    if (pc) {
+      const wantX = pc.px / TILE * tpx - cw / 2;
+      const wantY = pc.py / TILE * tpx - ch / 2;
+      this.camX += (wantX - this.camX) * 0.12;
+      this.camY += (wantY - this.camY) * 0.12;
+      this.clampCamera();
+    }
+
     // background
     ctx.fillStyle = '#24304a';
     ctx.fillRect(0, 0, cw, ch);
@@ -320,6 +330,16 @@ const Render = {
       const cy2 = oy + car.py / TILE * tpx;
       this.drawShadowEllipse(cx2, cy2 + cs * 0.1, cs * 0.9, cs * 0.35);
       this.drawCar(ctx, car, ox, oy, tpx);
+    }
+
+    // player's own car
+    if (pc) {
+      const pcar = { ...pc, type: 'car', color: '#ffd75e' };
+      const cs = this.carShadow(pcar) * tpx / TILE;
+      const cx2 = ox + pcar.px / TILE * tpx;
+      const cy2 = oy + pcar.py / TILE * tpx;
+      this.drawShadowEllipse(cx2, cy2 + cs * 0.1, cs * 0.9, cs * 0.35);
+      this.drawCar(ctx, pcar, ox, oy, tpx);
     }
 
     // sky details: stars, birds

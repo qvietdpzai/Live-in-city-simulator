@@ -132,6 +132,7 @@ const UI = {
     document.getElementById('fullscreenBtn')?.addEventListener('click', () => this.toggleFullscreen());
     document.getElementById('menuNewGame')?.addEventListener('click', () => UI.startNewGame());
     document.getElementById('menuLoadGame')?.addEventListener('click', () => UI.loadGame());
+    document.getElementById('driveBtn')?.addEventListener('click', () => { AudioFX.click(); UI.toggleDrive(); });
   },
 
   /* ---------- confirmation modal ---------- */
@@ -271,6 +272,25 @@ const UI = {
   togglePause() {
     Game.sim.speed = Game.sim.speed === 0 ? 1 : 0;
     this.els.speedBtns.forEach(b => b.classList.toggle('active', parseFloat(b.dataset.speed) === Game.sim.speed));
+  },
+
+  toggleDrive() {
+    if (Game.sim.playerCar) {
+      Game.sim.stopDriving();
+      this.toast('Exited your car');
+      this.setDriveBtn(false);
+    } else if (Game.sim.startDriving()) {
+      Render.zoom = 2;
+      this.toast('You are in a car! WASD/arrows to drive, V to exit');
+      this.setDriveBtn(true);
+    } else {
+      this.toast('No road to drive on — build one first!');
+    }
+  },
+
+  setDriveBtn(on) {
+    const b = document.getElementById('driveBtn');
+    if (b) b.classList.toggle('active', on);
   },
 
   updateZoomLabel() {

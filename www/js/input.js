@@ -53,6 +53,7 @@ const Input = {
   onMouseDown(e) {
     if (e.button === 2) { this.onRightClick(e); return; }
     if (e.button !== 0) return;
+    if (Game.sim.playerCar) return; // driving — don't build
     const rect = this.canvas.getBoundingClientRect();
     this.lastPointer = { x: e.clientX, y: e.clientY };
     this.drag = true;
@@ -89,6 +90,7 @@ const Input = {
   },
 
   onRightClick(e) {
+    if (Game.sim.playerCar) return;
     const rect = this.canvas.getBoundingClientRect();
     const t = this.tileAt(e.clientX - rect.left, e.clientY - rect.top);
     Game.tool = 'demolish';
@@ -174,6 +176,7 @@ const Input = {
     e.preventDefault();
     clearTimeout(this.longPressTimer);
     if (e.touches.length === 0 && this.tapTile && !this.tapMoved) {
+      if (Game.sim.playerCar) { this.tapTile = null; this.pinchDist = 0; this.lastPointer = null; return; }
       const rect = this.canvas.getBoundingClientRect();
       const tch = e.changedTouches[0];
       const t = this.tileAt(tch.clientX - rect.left, tch.clientY - rect.top);
@@ -191,12 +194,21 @@ const Input = {
   onKeyDown(e) {
     this.keys[e.code] = true;
     const speed = 26;
-    if (e.code === 'ArrowLeft' || e.code === 'KeyA') Render.camX -= speed * Render.zoom;
-    if (e.code === 'ArrowRight' || e.code === 'KeyD') Render.camX += speed * Render.zoom;
-    if (e.code === 'ArrowUp' || e.code === 'KeyW') Render.camY -= speed * Render.zoom;
-    if (e.code === 'ArrowDown' || e.code === 'KeyS') Render.camY += speed * Render.zoom;
-    Render.clampCamera();
+    // while driving, arrows/WASD steer the car instead of panning
+    if (Game.sim.playerCar) {
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') { Game.sim.driveDir('left'); e.preventDefault(); }
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') { Game.sim.driveDir('right'); e.preventDefault(); }
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') { Game.sim.driveDir('up'); e.preventDefault(); }
+      if (e.code === 'ArrowDown' || e.code === 'KeyS') { Game.sim.driveDir('down'); e.preventDefault(); }
+    } else {
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') Render.camX -= speed * Render.zoom;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') Render.camX += speed * Render.zoom;
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') Render.camY -= speed * Render.zoom;
+      if (e.code === 'ArrowDown' || e.code === 'KeyS') Render.camY += speed * Render.zoom;
+      Render.clampCamera();
+    }
     if (e.code === 'Space') { e.preventDefault(); UI.togglePause(); }
+    if (e.code === 'KeyV' || e.code === 'KeyC') { UI.toggleDrive(); return; }
     const toolKeys = { Digit1: 'road', Digit2: 'res', Digit3: 'com', Digit4: 'ind', Digit5: 'park', Digit6: 'power', Digit7: 'police', Digit8: 'school', Digit9: 'demolish' };
     if (toolKeys[e.code]) { UI.selectTool(toolKeys[e.code]); AudioFX.click(); }
     if (e.code === 'Equal' || e.code === 'NumpadAdd') { Render.zoom = Math.min(4, Render.zoom + 1); Render.clampCamera(); UI.updateZoomLabel(); }
