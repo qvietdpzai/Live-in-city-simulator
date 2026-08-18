@@ -273,12 +273,15 @@ button:active { transform: scale(0.94); }
   position: fixed;
   inset: 0;
   background: rgba(8, 12, 24, 0.85);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   z-index: 120;
   padding: 16px;
   flex-direction: column;
+}
+#menu.open {
+  display: flex;
 }
 #menu .menu-card {
   background: var(--panel);
@@ -492,34 +495,3 @@ button:active { transform: scale(0.94); }
 @media (max-height: 420px) {
   #rotateHint { display: none; }
 }
-
-/* ---------- menu chính ---------- */
-
-#menu {
-  position: fixed;
-  inset: 0;
-  background: rgba(8, 12, 24, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 120;
-  padding: 16px;
-  flex-direction: column;
-}
-#menu .menu-card {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 24px 30px;
-  max-width: 340px;
-  width: 100%;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-  text-align: center;
-}
-#menu .menu-card h2 { font-size: 22px; margin: 0 0 20px; color: var(--accent); }
-#menu .menu-btn {
-  width: 100%; padding: 10px 14px; margin: 8px 0; font-size: 14px;
-  background: var(--accent); color: #222; border: none; border-radius: 8px;
-  font-weight: 700; cursor: pointer; transition: background 0.12s;
-}
-#menu .menu-btn:hover { background: #ffe08a; }
