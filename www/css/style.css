@@ -5,7 +5,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg: #1b2233;
+  --bg: #141a2e;
   --panel: #232c44;
   --panel2: #2b3654;
   --line: #3a4a6e;
@@ -44,7 +44,7 @@ html, body {
   justify-content: space-between;
   gap: 8px;
   padding: 6px 10px;
-  background: linear-gradient(180deg, #2a3556, #1b2233);
+  background: linear-gradient(180deg, #2a3556, #141a2e);
   border-bottom: 2px solid var(--line);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
   font-size: 13px;
@@ -336,7 +336,7 @@ button:active { transform: scale(0.94); }
   display: flex;
   gap: 6px;
   padding: 8px 10px;
-  background: linear-gradient(0deg, var(--panel), #1d2539);
+  background: linear-gradient(0deg, var(--panel), #141a2e);
   border-top: 2px solid var(--line);
   overflow-x: auto;
   scrollbar-width: thin;

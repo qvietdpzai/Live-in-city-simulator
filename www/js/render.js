@@ -60,6 +60,25 @@ const Render = {
         night: this.buildSpriteCanvas(name, true),
       };
     }
+    // citizen clothing recolors: pink, green, red, orange shirts, darker hair
+    const shirts = ['#e074a8', '#58b05a', '#d05a5a', '#e0a040', '#7a9ae8', '#b06ad1'];
+    const hairs = ['#2a2430', '#5a3a22', '#7a5a2a', '#b8a240', '#c02a30'];
+    shirts.forEach((sc, i) => {
+      const recolor = {
+        d: hexToRgb(sc),
+        M: hexToRgb(hairs[i % hairs.length]),
+      };
+      for (const dir of ['Down', 'Up', 'Left', 'Right']) {
+        for (const f of [1, 2]) {
+          const base = `player${dir}${f}`;
+          const name = `citizen${i}_${dir}${f}`;
+          this.spriteCache[name] = {
+            day: this.buildSpriteCanvas(base, false, recolor),
+            night: this.buildSpriteCanvas(base, true, recolor),
+          };
+        }
+      }
+    });
     // zone tint canvases
     for (const t in ZONE_INFO) {
       const info = ZONE_INFO[t];
@@ -79,7 +98,7 @@ const Render = {
     }
   },
 
-  buildSpriteCanvas(name, night) {
+  buildSpriteCanvas(name, night, recolors) {
     const s = SPRITES[name];
     const c = document.createElement('canvas');
     c.width = s.size; c.height = s.size;
@@ -89,6 +108,7 @@ const Render = {
         const ch = row[x];
         if (ch === '.' || ch === ' ') continue;
         let rgb = PALETTE[ch];
+        if (recolors && recolors[ch]) rgb = recolors[ch];
         if (ch === 'W') {
           rgb = night ? [255, 214, 100] : PALETTE.W;
         }
@@ -186,7 +206,7 @@ const Render = {
     const ox = -this.camX * tpx / TILE;
     const oy = -this.camY * tpx / TILE;
 
-    const waterFrame = Math.floor(this.frame / 24) % 2 === 0 ? 'water1' : 'water2';
+    const waterFrame = ['water1', 'water2', 'water3'][Math.floor(this.frame / 16) % 3];
     const rain = Game.sim.weather === 'rain';
     const daylight = Game.sim.daylight();
 
@@ -200,19 +220,23 @@ const Render = {
         let spriteName = 'grass';
         if (t === TILES.WATER) spriteName = waterFrame;
         else if (t === TILES.SAND) spriteName = 'sand';
-        else if (t === TILES.TREE) spriteName = 'tree';
-        else if (t === TILES.PARK) spriteName = 'park';
+        else if (t === TILES.TREE) spriteName = this.treeVariant(x, y);
+        else if (t === TILES.PARK) spriteName = (x * 7 + y * 13) % 5 === 0 ? 'park2' : 'park';
         else if (t === TILES.RES || t === TILES.COM || t === TILES.IND) {
           spriteName = (x + y) % 2 === 0 ? 'grass' : 'grassAlt';
         } else if (t === TILES.ROAD) {
           spriteName = 'grass';
         }
         this.drawSprite(spriteName, sx, sy, tpx);
+        if (t === TILES.GRASS || t === TILES.SAND) this.drawGroundDetail(ctx, x, y, sx, sy, tpx, t);
 
         if (t === TILES.ROAD) {
           this.drawRoadTile(ctx, x, y, sx, sy, tpx);
           if (daylight < 0.5 && (x * 7 + y * 13) % 11 === 0) this.drawLampGlow(sx, sy, tpx, daylight);
-        } else if (t === TILES.WATER) this.drawWaterEdge(ctx, x, y, sx, sy, tpx);
+        } else if (t === TILES.WATER) {
+          this.drawWaterEdge(ctx, x, y, sx, sy, tpx);
+          this.drawWaterSparkle(ctx, x, y, sx, sy, tpx);
+        }
         else if (t === TILES.BRIDGE) this.drawBridge(ctx, x, y, sx, sy, tpx);
 
         // zone tint + development progress bar
@@ -243,8 +267,10 @@ const Render = {
             const s = SPRITES[b.sprite];
             const bw = s ? s.size * tpx / TILE : tpx;
             const bh = s ? s.size * tpx / TILE : tpx;
-            // drop shadow for depth
+            // cast shadow offset to the south-east for depth
             this.drawShadowEllipse(sx + bw / 2, sy + bh - tpx * 0.06, bw * 0.55, tpx * 0.16);
+            ctx.fillStyle = 'rgba(10,14,26,0.22)';
+            ctx.fillRect(sx + bw * 0.06, sy + bh - tpx * 0.02, bw, tpx * 0.1);
             this.drawBuilding(b, sx, sy, tpx);
             // factory chimney smoke
             if (b.type === 'ind' && b.level >= 2 && Math.random() < 0.06) {
@@ -260,6 +286,15 @@ const Render = {
               this.fillGradientRect(gx, gy, 1, gx, gy, bw * 0.85,
                 [[0, `rgba(255,214,120,${ga})`], [1, 'rgba(255,214,120,0)']],
                 sx - bw * 0.4, sy - bh * 0.3, bw * 1.8, bh * 1.6);
+              // a few randomly lit windows at night
+              if (Math.random() < 0.05 && s) {
+                const ww = Math.max(1, Math.floor(tpx * 0.09));
+                ctx.fillStyle = `rgba(255,214,120,${(0.5 - daylight) * 0.8})`;
+                ctx.fillRect(
+                  sx + tpx * (0.2 + Math.random() * 0.5),
+                  sy + tpx * (0.25 + Math.random() * 0.5),
+                  ww, ww);
+              }
             }
             if (!b.svc && b.powered === false) this.drawNoPower(sx, sy, tpx, b.size || 1);
           }
@@ -280,12 +315,17 @@ const Render = {
 
     // cars
     for (const car of Game.sim.cars) {
-      const cs = 3 * tpx / TILE;
+      const cs = this.carShadow(car) * tpx / TILE;
       const cx2 = ox + car.px / TILE * tpx;
       const cy2 = oy + car.py / TILE * tpx;
       this.drawShadowEllipse(cx2, cy2 + cs * 0.1, cs * 0.9, cs * 0.35);
       this.drawCar(ctx, car, ox, oy, tpx);
     }
+
+    // sky details: stars, birds
+    this.drawStars(cw, ch, daylight);
+    this.updateBirds(cw, ch);
+    this.updateFireflies(0.016, daylight, m, x0, y0, x1, y1, ox, oy, tpx);
 
     // floating particles (smoke / dust)
     this.updateParticles();
@@ -467,6 +507,136 @@ const Render = {
     if (isShore(x + 1, y)) for (let i = 1; i < TILE - 1; i += 2) ctx.fillRect(sx + tpx - px, sy + i * px, px * (0.6 + (i % 4) * 0.2), px);
   },
 
+  /* pick a tree look based on tile coords */
+  treeVariant(x, y) {
+    const n = (x * 7 + y * 13) % 8;
+    if (n === 0) return 'tree2';
+    if (n === 1) return 'tree3';
+    return 'tree';
+  },
+
+  /* extra ground detail: flowers, pebbles, grass tufts */
+  drawGroundDetail(ctx, x, y, sx, sy, tpx, t) {
+    const px = tpx / TILE;
+    const r = (x * 31 + y * 57) % 13;
+    const r2 = (x * 17 + y * 43) % 11;
+    if (t === TILES.GRASS) {
+      // flowers
+      if (r === 0) {
+        const fx = sx + 3 * px, fy = sy + 9 * px;
+        ctx.fillStyle = '#f4e06a';
+        ctx.fillRect(fx, fy - px, px * 2, px * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(fx + px * 0.5, fy - px * 0.5, px, px);
+      } else if (r === 4) {
+        const fx = sx + 10 * px, fy = sy + 4 * px;
+        ctx.fillStyle = '#e8a0b8';
+        ctx.fillRect(fx, fy, px * 2, px * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(fx + px * 0.5, fy + px * 0.5, px, px);
+      } else if (r === 8) {
+        const fx = sx + 12 * px, fy = sy + 11 * px;
+        ctx.fillStyle = '#9ad0e8';
+        ctx.fillRect(fx, fy - px, px * 2, px * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(fx + px * 0.5, fy - px * 0.5, px, px);
+      }
+      // grass tufts
+      if (r2 === 1) {
+        ctx.fillStyle = 'rgba(72,138,62,0.55)';
+        ctx.fillRect(sx + 5 * px, sy + 12 * px, px, px * 2);
+        ctx.fillRect(sx + 6 * px, sy + 13 * px, px, px);
+      } else if (r2 === 6) {
+        ctx.fillStyle = 'rgba(72,138,62,0.55)';
+        ctx.fillRect(sx + 11 * px, sy + 13 * px, px, px * 2);
+      }
+    } else if (t === TILES.SAND) {
+      // small pebbles / shells
+      if (r === 3) {
+        ctx.fillStyle = '#d8cfa8';
+        ctx.fillRect(sx + 5 * px, sy + 6 * px, px * 2, px);
+      } else if (r === 9) {
+        ctx.fillStyle = '#cbbf94';
+        ctx.fillRect(sx + 12 * px, sy + 12 * px, px, px);
+      }
+    }
+  },
+
+  /* twinkling stars in the night sky */
+  drawStars(cw, ch, daylight) {
+    if (daylight > 0.35) return;
+    const ctx = this.ctx;
+    const alpha = (0.35 - daylight) / 0.35;
+    if (!this.stars) {
+      this.stars = [];
+      for (let i = 0; i < 90; i++) {
+        this.stars.push({ x: Math.random(), y: Math.random() * 0.7, s: Math.random() < 0.2 ? 2 : 1 });
+      }
+    }
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < this.stars.length; i++) {
+      const st = this.stars[i];
+      const twinkle = 0.4 + 0.6 * Math.abs(Math.sin(this.frame * 0.02 + i));
+      ctx.globalAlpha = alpha * twinkle;
+      ctx.fillRect(st.x * cw, st.y * ch, st.s, st.s);
+    }
+    ctx.globalAlpha = 1;
+  },
+
+  /* birds drifting across the sky */
+  birds: [],
+  updateBirds(cw, ch) {
+    if (this.birds.length < 3 && Math.random() < 0.02) {
+      this.birds.push({ x: -20, y: 0.1 + Math.random() * 0.25, v: 0.3 + Math.random() * 0.4, flap: 0 });
+    }
+    const ctx = this.ctx;
+    for (let i = this.birds.length - 1; i >= 0; i--) {
+      const b = this.birds[i];
+      b.x += b.v * 2;
+      b.flap += 0.4;
+      const by = b.y * ch + Math.sin(b.flap) * 4;
+      const bx = b.x;
+      if (bx > cw + 30) { this.birds.splice(i, 1); continue; }
+      ctx.strokeStyle = 'rgba(20,22,30,0.85)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx + 4, by - 3 + Math.sin(b.flap) * 2);
+      ctx.moveTo(bx + 4, by - 3 + Math.sin(b.flap) * 2);
+      ctx.lineTo(bx + 8, by);
+      ctx.stroke();
+    }
+  },
+
+  /* warm fireflies floating over grass at night */
+  fireflyTimer: 0,
+  updateFireflies(dt, daylight, m, x0, y0, x1, y1, ox, oy, tpx) {
+    if (daylight > 0.3) return;
+    this.fireflyTimer += dt;
+    if (this.fireflyTimer < 0.12) return;
+    this.fireflyTimer = 0;
+    if (Math.random() < 0.5) {
+      const x = x0 + Math.floor(Math.random() * (x1 - x0 + 1));
+      const y = y0 + Math.floor(Math.random() * (y1 - y0 + 1));
+      if (m.inBounds(x, y) && (m.get(x, y) === TILES.GRASS || m.get(x, y) === TILES.PARK)) {
+        this.emitParticle(
+          ox + (x + 0.2 + Math.random() * 0.6) * tpx, oy + (y + 0.2 + Math.random() * 0.6) * tpx,
+          'rgba(210,255,150,0.95)', Math.max(1, Math.floor(tpx * 0.08)), 55,
+          (Math.random() - 0.5) * 0.3, -(0.15 + Math.random() * 0.2));
+      }
+    }
+  },
+
+  /* gentle animated foam sparkle on the river */
+  drawWaterSparkle(ctx, x, y, sx, sy, tpx) {
+    const px = tpx / TILE;
+    const tw = (x * 11 + y * 29 + this.frame) % 30;
+    if (tw < 6) {
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillRect(sx + (x * 7 % 13) * px, sy + (y * 5 % 11) * px, px, px);
+    }
+  },
+
   /* warm glow of street lamps at night */
   drawLampGlow(sx, sy, tpx, daylight) {
     const px = tpx / TILE;
@@ -542,50 +712,92 @@ const Render = {
     for (const [cx, cy] of cells) ctx.fillRect(bx + cx * px, by + cy * px, px, px);
   },
 
+  carShadow(car) {
+    const w = { car: 3, bus: 5, truck: 4.5, truck2: 6, moto: 2, van: 3.5 }[car.type || 'car'] || 3;
+    return w * 0.7;
+  },
+
   drawCar(ctx, car, ox, oy, tpx) {
     // Vehicle type definitions
     const vType = car.type || 'car';
     const specs = {
-      car:    { w: 3, h: 1.8, colors: ['#d33', '#3a7bd5', '#e6a52e', '#3fae6a', '#b06ad1'] },
-      bus:    { w: 5, h: 2.2, colors: ['#e67e22', '#c0392b', '#8e44ad'] },
-      truck:  { w: 4.5, h: 2.0, colors: ['#7f8c8d', '#95a5a6', '#2c3e50'] },
+      car:    { w: 3, h: 1.8, colors: ['#d33', '#3a7bd5', '#e6a52e', '#3fae6a', '#b06ad1', '#f39c12', '#e8e8e8', '#34495e'] },
+      bus:    { w: 5, h: 2.2, colors: ['#e67e22', '#c0392b', '#8e44ad', '#16a085', '#2c3e50'] },
+      truck:  { w: 4.5, h: 2.0, colors: ['#7f8c8d', '#95a5a6', '#2c3e50', '#c0392b', '#2980b9'] },
       truck2: { w: 6, h: 2.5, colors: ['#27ae60', '#2980b9', '#c0392b'] }, // large truck
-      moto:   { w: 2, h: 1.0, colors: ['#e74c3c', '#3498db', '#f1c40f'] }, // motorcycle
-      van:    { w: 3.5, h: 2.0, colors: ['#ecf0f1', '#bdc3c7', '#95a5a6'] },
+      moto:   { w: 2, h: 1.0, colors: ['#e74c3c', '#3498db', '#f1c40f', '#27ae60'] }, // motorcycle
+      van:    { w: 3.5, h: 2.0, colors: ['#ecf0f1', '#bdc3c7', '#95a5a6', '#d5dbdb'] },
     };
     const spec = specs[vType] || specs.car;
     const s = spec.w * tpx / TILE;
     const h = spec.h * tpx / TILE;
     const x = ox + car.px / TILE * tpx;
     const y = oy + car.py / TILE * tpx;
+    const color = car.color || spec.colors[0];
+    const px = tpx / TILE;
     ctx.save();
     ctx.translate(x, y);
     if (car.dir === 'up' || car.dir === 'down') ctx.rotate(car.dir === 'up' ? Math.PI / 2 : -Math.PI / 2);
-    ctx.fillStyle = car.color || spec.colors[0];
+    const dark = shadeColor(color, 0.72);
+    const light = shadeColor(color, 1.18);
+    // wheels (dark, below body)
+    ctx.fillStyle = '#14161c';
+    const wheelH = Math.max(1, Math.floor(h * 0.28));
+    const wheelW = Math.max(1, Math.floor(s * 0.12));
+    const wy = h / 2 - wheelH * 0.55;
+    ctx.fillRect(-s / 2, -wy - wheelH, wheelW, wheelH);
+    ctx.fillRect(s / 2 - wheelW, -wy - wheelH, wheelW, wheelH);
+    ctx.fillRect(-s / 2, wy, wheelW, wheelH);
+    ctx.fillRect(s / 2 - wheelW, wy, wheelW, wheelH);
     // body
+    ctx.fillStyle = color;
     ctx.fillRect(-s / 2, -h / 2, s, h);
-    // window
-    ctx.fillStyle = '#222';
-    ctx.fillRect(-s / 2, -h * 0.15, s, h * 0.3);
+    // roof highlight strip
+    ctx.fillStyle = light;
+    ctx.fillRect(-s / 2, -h / 2, s, Math.max(1, Math.floor(h * 0.18)));
+    // cabin window
+    ctx.fillStyle = '#1d2733';
+    const cabW = Math.max(1, Math.floor(s * (vType === 'moto' ? 0.35 : 0.42)));
+    const cabH = Math.max(1, Math.floor(h * 0.42));
+    ctx.fillRect(-cabW / 2, -h * 0.1 - cabH / 2, cabW, cabH);
+    // window reflection highlight
+    ctx.fillStyle = 'rgba(190,220,255,0.55)';
+    ctx.fillRect(-cabW / 2, -h * 0.1 - cabH / 2, Math.max(1, Math.floor(cabW * 0.35)), Math.max(1, Math.floor(cabH * 0.7)));
     // headlights
     ctx.fillStyle = '#ffe08a';
-    ctx.fillRect(s / 2 - s * 0.15, -h / 2, s * 0.15, h * 0.18);
+    ctx.fillRect(s / 2 - s * 0.16, -h * 0.42, s * 0.14, h * 0.12);
     // taillights
     ctx.fillStyle = '#e74c3c';
-    ctx.fillRect(-s / 2, -h / 2 + h * 0.1, s * 0.1, h * 0.15);
-    ctx.fillRect(-s / 2, h / 2 - h * 0.25, s * 0.1, h * 0.15);
-    // wheels
-    ctx.fillStyle = '#111';
-    const wr = Math.max(1, Math.floor(h * 0.18));
-    ctx.fillRect(-s * 0.35, -h / 2 + h * 0.15, wr, wr);
-    ctx.fillRect(-s * 0.35, h / 2 - h * 0.3, wr, wr);
-    ctx.fillRect(s * 0.25, -h / 2 + h * 0.15, wr, wr);
-    ctx.fillRect(s * 0.25, h / 2 - h * 0.3, wr, wr);
+    ctx.fillRect(-s / 2, h * 0.3, s * 0.1, h * 0.1);
+    // bumper trim
+    ctx.fillStyle = dark;
+    ctx.fillRect(-s / 2, h / 2 - Math.max(1, Math.floor(h * 0.14)), s, Math.max(1, Math.floor(h * 0.14)));
     ctx.restore();
   },
 
   playerSpriteName(c) {
     const f = Math.floor(c.anim) % 2 === 0 ? 1 : 2;
-    return `player${c.dir[0].toUpperCase()}${c.dir.slice(1)}${f}`;
+    const dir = `player${c.dir[0].toUpperCase()}${c.dir.slice(1)}${f}`;
+    if (c.id === undefined || c.id === 0) return dir;
+    const v = c.id % 6;
+    const name = `citizen${v}_${c.dir[0].toUpperCase()}${c.dir.slice(1)}${f}`;
+    return this.spriteCache[name] ? name : dir;
   },
 };
+
+/* convert a #rrggbb string to an [r,g,b] array */
+function hexToRgb(hex) {
+  return [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ];
+}
+
+/* lighten/darken a hex color by a factor */
+function shadeColor(hex, f) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgb(${Math.min(255, Math.round(r * f))},${Math.min(255, Math.round(g * f))},${Math.min(255, Math.round(b * f))})`;
+}

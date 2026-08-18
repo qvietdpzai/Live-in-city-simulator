@@ -517,11 +517,11 @@ const Sim = {
         if (path && path.length > 1) {
           const vType = vTypes[Math.floor(this.rng() * vTypes.length)];
           const spec = {
-            car:    { colors: ['#d33', '#3a7bd5', '#e6a52e', '#3fae6a', '#b06ad1'] },
-            bus:    { colors: ['#e67e22', '#c0392b', '#8e44ad'] },
-            truck:  { colors: ['#7f8c8d', '#95a5a6', '#2c3e50'] },
-            van:    { colors: ['#ecf0f1', '#bdc3c7', '#95a5a6'] },
-            moto:   { colors: ['#e74c3c', '#3498db', '#f1c40f'] },
+            car:    { colors: ['#d33', '#3a7bd5', '#e6a52e', '#3fae6a', '#b06ad1', '#f39c12', '#e8e8e8', '#34495e'] },
+            bus:    { colors: ['#e67e22', '#c0392b', '#8e44ad', '#16a085', '#2c3e50'] },
+            truck:  { colors: ['#7f8c8d', '#95a5a6', '#2c3e50', '#c0392b', '#2980b9'] },
+            van:    { colors: ['#ecf0f1', '#bdc3c7', '#95a5a6', '#d5dbdb'] },
+            moto:   { colors: ['#e74c3c', '#3498db', '#f1c40f', '#27ae60'] },
           };
           const specColors = spec[vType].colors;
           this.cars.push({

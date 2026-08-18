@@ -186,6 +186,7 @@ const UI = {
         else if (t === TILES.TREE) col = '#3f8a45';
         else if (t === TILES.PARK) col = '#7fc66a';
         else if (t === TILES.ROAD) col = '#5a5a5a';
+        else if (t === TILES.BRIDGE) col = '#8b7355';
         else if (t === TILES.RES) col = '#d8c458';
         else if (t === TILES.COM) col = '#6ab4e8';
         else if (t === TILES.IND) col = '#e88a6a';
