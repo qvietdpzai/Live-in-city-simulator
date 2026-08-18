@@ -43,6 +43,7 @@ const UI = {
     this.els.modal = document.getElementById('modal');
     this.els.modalTitle = document.getElementById('modalTitle');
     this.els.modalMsg = document.getElementById('modalMsg');
+    this.els.menu = document.getElementById('menu');
 
     this.buildToolbar();
     this.bindControls();
